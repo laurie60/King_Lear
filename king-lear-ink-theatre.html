@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>King Lear — Sumi-e Ink Puppet Theatre</title>
+  <style>
+    :root {
+      --paper: #f1ece1;
+      --ink: #111215;
+      --crimson: #6e1414;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--paper);
+      font-family: "Georgia", serif;
+      color: var(--ink);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Inline YouTube audio mini-dock (inline so iOS/iPadOS doesn't hijack to fullscreen) */
+    #ytDock {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      width: 185px;
+      height: 104px;
+      z-index: 35;
+      border: 2px solid var(--ink);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+    #ytDock.tucked { z-index: 1; opacity: 0.01; pointer-events: none; }
+    #ytPlayer, #ytPlayer iframe { width: 100%; height: 100%; border: 0; display: block; }
+    #ytFallback {
+      position: fixed; bottom: 14px; right: 14px; z-index: 38;
+      width: 280px; display: none;
+      background: rgba(241, 236, 225, 0.98);
+      border: 2px solid var(--ink); border-radius: 6px;
+      padding: 10px 12px; font-size: 12.5px; line-height: 1.4;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    #ytFallback.show { display: block; }
+    #ytFallback .fbBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    #ytFallback a {
+      font-size: 12px; color: var(--paper); background: var(--ink); text-decoration: none;
+      padding: 4px 9px; border-radius: 4px; border: 1px solid var(--ink);
+    }
+    #ytDockHint {
+      position: fixed;
+      bottom: 122px;
+      right: 14px;
+      z-index: 36;
+      font-size: 11px;
+      background: rgba(17, 18, 21, 0.9);
+      color: var(--paper);
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+      max-width: 220px;
+    }
+
+    #parchmentShield {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      background-color: var(--paper);
+      background-image:
+        radial-gradient(rgba(17, 18, 21, 0.04) 1px, transparent 0),
+        radial-gradient(ellipse at center, transparent 45%, rgba(140, 125, 100, 0.36) 100%);
+      background-size: 20px 20px, 100% 100%;
+    }
+
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    #stageCanvas { z-index: 10; }
+    #uiCanvas { z-index: 15; pointer-events: none; }
+
+    #topBar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      background: rgba(241, 236, 225, 0.95);
+      border: 1px solid rgba(17, 18, 21, 0.45);
+      padding: 7px 12px;
+      border-radius: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      justify-content: center;
+      width: 96vw;
+      max-width: 1260px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    button, select {
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid rgba(17, 18, 21, 0.75);
+      padding: 4px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    select { max-width: 46vw; }
+    button:hover { background: var(--ink); color: var(--paper); }
+    #scrubberWrap { display: flex; align-items: center; gap: 6px; flex: 1 1 260px; min-width: 200px; }
+    input[type="range"] { flex: 1; accent-color: #111215; cursor: pointer; }
+    #timeDisplay { font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; text-align: right; }
+
+    #scriptBanner {
+      position: fixed;
+      bottom: 12px;
+      left: 14px;
+      right: 215px;
+      z-index: 30;
+      pointer-events: none;
+      background: rgba(241, 236, 225, 0.92);
+      padding: 8px 14px;
+      border-radius: 6px;
+      border-left: 4px solid var(--ink);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+      transition: opacity 0.3s;
+    }
+    #sceneHeader { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.68; }
+    #dialogueLine { font-size: 14px; font-weight: bold; margin-top: 2px; color: #0d0e11; }
+    #stageDirection { font-size: 11.5px; font-style: italic; color: #4a3f35; margin-top: 2px; }
+    .hidden { opacity: 0 !important; }
+
+    @media (max-width: 700px) {
+      #scriptBanner { right: 10px; left: 10px; bottom: 10px; padding: 6px 10px; }
+      #dialogueLine { font-size: 12.5px; }
+      #stageDirection { font-size: 11px; }
+      #ytDock { bottom: auto; top: 128px; right: 10px; width: 160px; height: 90px; }
+      #ytDockHint { bottom: auto; top: 222px; right: 10px; }
+      #ytFallback { bottom: auto; top: 128px; right: 10px; left: 10px; width: auto; }
+      #timeDisplay { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="topBar">
+    <button id="playPauseBtn">Play / Pause</button>
+    <select id="sceneSelector" title="Jump to any scene"></select>
+    <div id="scrubberWrap">
+      <input type="range" id="timelineSlider" min="0" max="10873" value="80" step="1">
+      <span id="timeDisplay">00:01:20 / 03:01:13</span>
+    </div>
+    <button id="toggleNamesBtn">Names: On</button>
+    <button id="toggleTextBtn">Text: On</button>
+    <button id="hideDockBtn">Hide Audio Box</button>
+  </div>
+
+  <div id="parchmentShield"></div>
+  <canvas id="stageCanvas"></canvas>
+  <canvas id="uiCanvas"></canvas>
+
+  <div id="scriptBanner">
+    <div id="sceneHeader">Act I, Scene i</div>
+    <div id="dialogueLine"></div>
+    <div id="stageDirection"></div>
+  </div>
+
+  <div id="ytDockHint">1. Tap video to start audio &rarr; 2. Click "Hide Audio Box"</div>
+  <div id="ytDock"><div id="ytPlayer"></div></div>
+  <div id="ytFallback">
+    <div id="ytFallbackMsg"></div>
+    <div class="fbBtns">
+      <a id="ytOpenLink" target="_blank" rel="noopener">Open recording in YouTube</a>
+      <button id="ytChangeBtn">Use a different video</button>
+      <button id="ytRetryBtn">Try again</button>
+      <button id="ytSilentBtn">Carry on without sound</button>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================================
+    //  SETUP
+    // =====================================================================
+    const DEFAULT_VIDEO_ID = 'Kc46-Z9Lj6U';
+    let VIDEO_ID = DEFAULT_VIDEO_ID;
+    try { const v = localStorage.getItem('learVideoId'); if (v) VIDEO_ID = v; } catch (e) {}
+    const TOTAL = 10873;
+    const stageCanvas = document.getElementById('stageCanvas');
+    const ctx = stageCanvas.getContext('2d');
+    const uiCanvas = document.getElementById('uiCanvas');
+    const uiCtx = uiCanvas.getContext('2d');
+
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const sceneSelector = document.getElementById('sceneSelector');
+    const timelineSlider = document.getElementById('timelineSlider');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const toggleNamesBtn = document.getElementById('toggleNamesBtn');
+    const toggleTextBtn = document.getElementById('toggleTextBtn');
+    const hideDockBtn = document.getElementById('hideDockBtn');
+    const ytDock = document.getElementById('ytDock');
+    const ytDockHint = document.getElementById('ytDockHint');
+    const scriptBanner = document.getElementById('scriptBanner');
+    const sceneHeaderEl = document.getElementById('sceneHeader');
+    const dialogueLineEl = document.getElementById('dialogueLine');
+    const stageDirectionEl = document.getElementById('stageDirection');
+
+    let nameMode = 1;      // 0 off, 1 on
+    let textOn = true;
+    let simRunning = true;
+    let ytPlaying = false;
+    let isScrubbing = false;
+    let simTime = 80;
+    let prevSimTime = -999;
+    let lastNow = performance.now();
+    let W = window.innerWidth, H = window.innerHeight, DPR = 1;
+
+    const TAU = Math.PI * 2;
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const lerp = (a, b, k) => a + (b - a) * k;
+
+    function resize() {
+      DPR = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth; H = window.innerHeight;
+      for (const c of [stageCanvas, uiCanvas]) {
+        c.width = Math.round(W * DPR);
+        c.height = Math.round(H * DPR);
+      }
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      uiCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    toggleNamesBtn.addEventListener('click', () => {
+      nameMode = nameMode ? 0 : 1;
+      toggleNamesBtn.textContent = nameMode ? 'Names: On' : 'Names: Off';
+    });
+    toggleTextBtn.addEventListener('click', () => {
+      textOn = !textOn;
+      toggleTextBtn.textContent = textOn ? 'Text: On' : 'Text: Off';
+      scriptBanner.classList.toggle('hidden', !textOn);
+    });
+    hideDockBtn.addEventListener('click', () => {
+      const tucked = ytDock.classList.toggle('tucked');
+      ytDockHint.style.display = tucked ? 'none' : 'block';
+      if (tucked) document.getElementById('ytFallback').classList.remove('show');
+      hideDockBtn.textContent = tucked ? 'Show Audio Box' : 'Hide Audio Box';
+    });
+
+    // =====================================================================
+    //  CAST
+    // =====================================================================
+    const CAST_SPECS = [
+      { id: 'lear',       name: 'King Lear',         homeX: 0.50, homeY: 0.54, scale: 1.14, rgb: [14, 15, 18], crown: 'king',    beard: 'grey', gown: true },
+      { id: 'cordelia',   name: 'Cordelia',          homeX: 0.50, homeY: 0.25, scale: 0.92, rgb: [36, 58, 78], crown: 'coronet', fem: true,    gown: true },
+      { id: 'goneril',    name: 'Goneril',           homeX: 0.22, homeY: 0.34, scale: 0.98, rgb: [62, 14, 16], crown: 'coronet', fem: true,    gown: true },
+      { id: 'regan',      name: 'Regan',             homeX: 0.78, homeY: 0.34, scale: 0.96, rgb: [74, 20, 15], crown: 'coronet', fem: true,    gown: true },
+      { id: 'gloucester', name: 'Gloucester',        homeX: 0.24, homeY: 0.66, scale: 1.02, rgb: [38, 30, 24], crown: 'none',    beard: 'grey', gown: true },
+      { id: 'edgar',      name: 'Edgar / Poor Tom',  homeX: 0.66, homeY: 0.66, scale: 1.00, rgb: [44, 34, 24], crown: 'none' },
+      { id: 'edmund',     name: 'Edmund',            homeX: 0.50, homeY: 0.80, scale: 1.02, rgb: [36, 14, 28], crown: 'none' },
+      { id: 'kent',       name: 'Kent (Caius)',      homeX: 0.75, homeY: 0.54, scale: 1.04, rgb: [26, 34, 44], crown: 'none',    beard: 'dark' },
+      { id: 'fool',       name: 'The Fool',          homeX: 0.36, homeY: 0.56, scale: 0.84, rgb: [40, 42, 54], crown: 'coxcomb' },
+      { id: 'albany',     name: 'Albany',            homeX: 0.14, homeY: 0.42, scale: 1.02, rgb: [30, 44, 32], crown: 'coronet', beard: 'dark', gown: true },
+      { id: 'cornwall',   name: 'Cornwall',          homeX: 0.86, homeY: 0.42, scale: 1.04, rgb: [54, 12, 12], crown: 'coronet', gown: true },
+      { id: 'france',     name: 'King of France',    homeX: 0.36, homeY: 0.20, scale: 1.02, rgb: [22, 42, 66], crown: 'king',    gown: true },
+      { id: 'burgundy',   name: 'Burgundy',          homeX: 0.64, homeY: 0.20, scale: 0.98, rgb: [58, 50, 38], crown: 'coronet', gown: true },
+      { id: 'oswald',     name: 'Oswald',            homeX: 0.15, homeY: 0.58, scale: 0.92, rgb: [28, 30, 24], crown: 'none' },
+      { id: 'curan',      name: 'Curan',             homeX: 0.15, homeY: 0.78, scale: 0.88, rgb: [54, 56, 60], crown: 'none' },
+      { id: 'oldman',     name: 'Old Man & Servant', homeX: 0.34, homeY: 0.82, scale: 0.90, rgb: [50, 40, 28], crown: 'none',    beard: 'grey' },
+      { id: 'doctor',     name: 'Doctor & Captain',  homeX: 0.84, homeY: 0.76, scale: 0.92, rgb: [40, 46, 52], crown: 'none',    beard: 'dark', gown: true }
+    ];
+    // Anonymous soldiers for the battle
+    for (let i = 0; i < 6; i++) {
+      CAST_SPECS.push({ id: 'sol' + i, name: '', extra: true, homeX: i < 3 ? -0.15 : 1.15, homeY: 0.38 + (i % 3) * 0.02,
+        scale: 0.8, rgb: i % 2 ? [40, 30, 30] : [26, 32, 40], crown: 'helm' });
+    }
+
+    // =====================================================================
+    //  SCENES — every line carries stage blocking
+    //  staging: id -> {x, y, p: pose, to: partner, w: walk-in-place, face:'L'|'R'}
+    //  line.do: changes to blocking from this line on (null = exit)
+    //  line.mid: {do, fx, sd} applied partway through the line
+    //  line.fx: effects;  line.sd: stage direction shown in the banner
+    // =====================================================================
+    const S = (x, y, p, o) => Object.assign({ x, y, p }, o || {});
+
+    const SCENES = [
+      { start: 0, end: 190, title: '[00:01:20] Act I.i (a) — Kent, Gloucester & Edmund',
+        stageAction: 'Kent and Gloucester discuss the division of the kingdom; Gloucester introduces his illegitimate son Edmund.',
+        props: [], storm: 0.0, dead: [],
+        staging: {
+          kent:       S(0.38, 0.56, 'converse', { to: 'gloucester' }),
+          gloucester: S(0.52, 0.56, 'gesture',  { to: 'kent' }),
+          edmund:     S(0.70, 0.58, 'stand',    { to: 'gloucester' })
+        },
+        lines: [
+          { s: 'kent',       t: 'I thought the King had more affected the Duke of Albany than Cornwall.' },
+          { s: 'gloucester', t: 'It did always seem so to us: but now, in the division of the kingdom, it appears not which of the Dukes he values most.' },
+          { s: 'kent',       t: 'Is not this your son, my lord?', do: { kent: { p: 'point', to: 'edmund' } }, sd: 'Kent notices the young man waiting behind' },
+          { s: 'gloucester', t: 'His breeding, sir, hath been at my charge. Though this knave came something saucily to the world before he was sent for...',
+            do: { gloucester: { x: 0.56, p: 'gesture', to: 'kent' }, kent: { p: 'converse' }, edmund: { x: 0.66, p: 'turnAway', to: 'gloucester' } },
+            sd: 'Gloucester jokes coarsely about Edmund’s birth; Edmund turns his face away' },
+          { s: 'edmund',     t: 'My services to your lordship. I shall study deserving.', do: { edmund: { x: 0.64, p: 'bow', to: 'kent' } }, sd: 'Edmund bows low to Kent, every inch the obedient son' }
+        ]
+      },
+      { start: 190, end: 445, title: '[00:03:14] Act I.i (b) — Lear Unrolls the Map & Divides the Kingdom',
+        stageAction: 'Lear unrolls the great Map of Britain on the floor; Goneril and Regan step forward with extravagant flattery.',
+        props: ['map'], storm: 0.05, dead: [],
+        staging: {
+          lear:       S(0.50, 0.46, 'command'),
+          goneril:    S(0.30, 0.56, 'stand', { to: 'lear' }),
+          regan:      S(0.70, 0.56, 'stand', { to: 'lear' }),
+          cordelia:   S(0.52, 0.74, 'stand', { to: 'lear' }),
+          albany:     S(0.20, 0.60, 'stand'),
+          cornwall:   S(0.80, 0.60, 'stand'),
+          kent:       S(0.36, 0.42, 'stand'),
+          gloucester: S(0.64, 0.42, 'stand')
+        },
+        lines: [
+          { s: 'lear',    t: 'Give me the map there. Know that we have divided in three our kingdom; and ’tis our fast intent to shake all cares and business from our age.',
+            do: { lear: { p: 'point' } }, sd: 'Lear flings out his arm over the map at his feet' },
+          { s: 'lear',    t: 'Tell me, my daughters—which of you shall we say doth love us most?', to: 'goneril', do: { lear: { p: 'gesture', to: 'goneril' } } },
+          { s: 'goneril', t: 'Sir, I love you more than words can wield the matter; dearer than eyesight, space, and liberty!',
+            do: { goneril: { x: 0.40, y: 0.52, p: 'beg' }, cordelia: { p: 'turnAway' } }, sd: 'Goneril sweeps forward and kneels; Cordelia cannot watch' },
+          { s: 'lear',    t: 'Of all these bounds, even from this line to this, we make thee lady. What says our second daughter, our dearest Regan?',
+            do: { lear: { p: 'point', to: 'goneril' }, goneril: { x: 0.30, y: 0.56, p: 'bow' } }, fx: ['divide1', 'thud'], sd: 'Lear draws the first border across the map in red ink' },
+          { s: 'regan',   t: 'I am made of that self metal as my sister, and prize me at her worth. I am alone felicitate in your dear highness’ love!',
+            do: { regan: { x: 0.60, y: 0.52, p: 'beg' }, lear: { p: 'converse', to: 'regan' }, goneril: { p: 'stand' } },
+            mid: { do: { lear: { p: 'point', to: 'regan' } }, fx: ['divide2'], sd: 'Lear strikes the second border; Regan’s third is hers' } }
+        ]
+      },
+      { start: 445, end: 630, title: '[00:07:31] Act I.i (c) — Cordelia: "Nothing, my lord"',
+        stageAction: 'Cordelia refuses to flatter; Lear rises in towering fury and disowns her over the divided map.',
+        props: ['map'], storm: 0.25, dead: [],
+        staging: {
+          lear:     S(0.44, 0.50, 'gesture', { to: 'cordelia' }),
+          cordelia: S(0.62, 0.56, 'stand', { to: 'lear' }),
+          goneril:  S(0.25, 0.46, 'stand'),
+          regan:    S(0.78, 0.46, 'stand'),
+          kent:     S(0.30, 0.62, 'stand'),
+          albany:   S(0.16, 0.56, 'stand'),
+          cornwall: S(0.86, 0.56, 'stand')
+        },
+        lines: [
+          { s: 'lear',     t: 'Now, our joy, although our last and least—what can you say to draw a third more opulent than your sisters? Speak.', do: { cordelia: { x: 0.58 } } },
+          { s: 'cordelia', t: 'Nothing, my lord.', sd: 'A silence falls on the court', do: { goneril: { p: 'whisper', to: 'regan' }, regan: { p: 'whisper', to: 'goneril' } } },
+          { s: 'lear',     t: 'Nothing? Nothing will come of nothing: speak again!', do: { lear: { p: 'point' } }, fx: ['thud'] },
+          { s: 'cordelia', t: 'Unhappy that I am, I cannot heave my heart into my mouth: I love your majesty according to my bond; no more nor less.',
+            do: { cordelia: { p: 'plead' }, goneril: { p: 'stand' }, regan: { p: 'stand' } } },
+          { s: 'lear',     t: 'Here I disclaim all my paternal care, propinquity and property of blood, and as a stranger to my heart and me hold thee from this for ever!',
+            do: { lear: { p: 'rage' }, cordelia: { p: 'bow' }, kent: { x: 0.38, p: 'plead', to: 'lear' } }, fx: ['thunder'], sd: 'Lear towers over her and casts her off' }
+        ]
+      },
+      { start: 630, end: 748, title: '[00:10:34] Act I.i (d) — Kent Intervenes & Is Banished',
+        stageAction: 'Kent steps between Lear and Cordelia; Cornwall and Albany part the coronet as Lear banishes Kent.',
+        props: ['map', 'coronet'], storm: 0.35, dead: [],
+        staging: {
+          lear:     S(0.36, 0.52, 'point', { to: 'kent' }),
+          kent:     S(0.52, 0.54, 'plead', { to: 'lear' }),
+          albany:   S(0.66, 0.50, 'takeHand', { to: 'cornwall' }),
+          cornwall: S(0.76, 0.50, 'takeHand', { to: 'albany' }),
+          cordelia: S(0.60, 0.64, 'stand', { to: 'kent' })
+        },
+        lines: [
+          { s: 'kent', t: 'Royal Lear, whom I have ever honor’d as my king—be Kent unmannerly when Lear is mad! What wouldst thou do, old man?',
+            mid: { do: { kent: { p: 'defy' } } }, sd: 'Kent plants himself between the King and Cordelia' },
+          { s: 'lear', t: 'Peace, Kent! Come not between the dragon and his wrath!', do: { lear: { p: 'rage' } }, fx: ['thunder'] },
+          { s: 'kent', t: 'See better, Lear, and let me still remain the true blank of thine eye!', do: { kent: { x: 0.48, p: 'point' } } },
+          { s: 'lear', t: 'Hear me, recreant! Five days we do allot thee for provision, and on the sixth to turn thy hated back upon our kingdom!', do: { lear: { p: 'command' }, kent: { p: 'stand' } } },
+          { s: 'kent', t: 'Fare thee well, king: sith thus thou wilt appear, freedom lives hence, and banishment is here.',
+            do: { kent: { p: 'bow' } }, mid: { do: { kent: null }, sd: 'Kent bows once and walks out into exile' } }
+        ]
+      },
+      { start: 748, end: 1050, title: '[00:12:28] Act I.i (e) — France Takes Cordelia’s Hand',
+        stageAction: 'Burgundy rejects the dowerless Cordelia; the King of France steps forward and takes her hand.',
+        props: [], storm: 0.15, dead: [],
+        staging: {
+          lear:     S(0.26, 0.50, 'defy', { to: 'cordelia' }),
+          cordelia: S(0.50, 0.56, 'stand', { to: 'burgundy' }),
+          france:   S(0.66, 0.46, 'stand', { to: 'cordelia' }),
+          burgundy: S(0.70, 0.56, 'converse', { to: 'cordelia' }),
+          goneril:  S(0.18, 0.68, 'stand', { to: 'regan' }),
+          regan:    S(0.30, 0.70, 'stand', { to: 'goneril' })
+        },
+        lines: [
+          { s: 'burgundy', t: 'Pardon me, royal sir; election makes not up on such conditions.', do: { burgundy: { x: 0.80, p: 'turnAway' } }, sd: 'Burgundy backs away from the dowerless princess' },
+          { s: 'france',   t: 'Fairest Cordelia, that art most rich, being poor; most choice, forsaken; and most loved, despised! Thee and thy virtues here I seize upon!',
+            do: { france: { x: 0.60, y: 0.56, p: 'takeHand', to: 'cordelia' }, cordelia: { p: 'takeHand', to: 'france' } }, sd: 'France crosses the floor and takes Cordelia’s hand' },
+          { s: 'lear',     t: 'Thou hast her, France; let her be thine, for we have no such daughter, nor shall ever see that face of hers again.', do: { lear: { p: 'turnAway', to: 'cordelia' } } },
+          { s: 'cordelia', t: 'The jewels of our father, with wash’d eyes Cordelia leaves you: I know you what you are.',
+            do: { cordelia: { x: 0.46, p: 'point', to: 'goneril' }, goneril: { p: 'defy', to: 'cordelia' }, regan: { p: 'defy', to: 'cordelia' }, lear: null } }
+        ]
+      },
+      { start: 1050, end: 1112, title: '[00:17:33] Act I.i (f) — Goneril & Regan Conspire',
+        stageAction: 'Left alone on stage, Goneril and Regan lean in close, plotting to curb their father’s authority.',
+        props: [], storm: 0.1, dead: [],
+        staging: {
+          goneril: S(0.45, 0.54, 'whisper', { to: 'regan' }),
+          regan:   S(0.55, 0.54, 'whisper', { to: 'goneril' })
+        },
+        lines: [
+          { s: 'goneril', t: 'You see how full of changes his age is; he always loved our sister most.' },
+          { s: 'regan',   t: '’Tis the infirmity of his age: yet he hath ever but slenderly known himself.' },
+          { s: 'goneril', t: 'Pray you, let us hit together. We must do something, and i’ the heat.',
+            do: { goneril: { x: 0.47, p: 'takeHand' }, regan: { x: 0.53, p: 'takeHand' } }, sd: 'The sisters clasp hands on it' }
+        ]
+      },
+      { start: 1112, end: 1600, title: '[00:18:36] Act I.ii — Edmund’s Forged Letter ("Thou, Nature, art my goddess")',
+        stageAction: 'Edmund raises the forged letter aloft, then pockets it as Gloucester enters; later he deceives Edgar.',
+        props: [], storm: 0.2, dead: [],
+        staging: {
+          edmund: S(0.50, 0.54, 'holdLetter', { w: 1 })
+        },
+        lines: [
+          { s: 'edmund',     t: 'Thou, Nature, art my goddess; to thy law my services are bound. Wherefore base? Now, gods, stand up for bastards!',
+            mid: { do: { edmund: { p: 'skyPoint', w: 0 } }, sd: 'Edmund flings the letter skyward in defiance of the gods' } },
+          { s: 'gloucester', t: 'Why so earnestly seek you to put up that letter? Give me the letter, sir.',
+            do: { gloucester: S(0.34, 0.56, 'point', { to: 'edmund' }), edmund: { x: 0.52, p: 'hideLetter', to: 'gloucester' } },
+            mid: { do: { gloucester: { x: 0.40, p: 'readLetter' }, edmund: { p: 'stand' } }, sd: 'Gloucester snatches the forged letter and reads it' } },
+          { s: 'gloucester', t: 'These late eclipses in the sun and moon portend no good to us! Find out this villain, Edmund.', do: { gloucester: { p: 'skyPoint' } },
+            mid: { do: { gloucester: null } } },
+          { s: 'edmund',     t: 'This is the excellent foppery of the world, that when we are sick in fortune we make guilty of our disasters the sun, the moon, and stars!',
+            do: { edmund: { x: 0.50, p: 'gesture', w: 0 } }, sd: 'Alone again, Edmund mocks his father’s star-gazing' },
+          { s: 'edmund',     t: 'A credulous father, and a brother noble—my practices ride easy!',
+            do: { edgar: S(0.68, 0.56, 'converse', { to: 'edmund' }), edmund: { p: 'strut', to: 'edgar' } }, sd: 'Edgar wanders in, trusting; Edmund smiles' }
+        ]
+      },
+      { start: 1600, end: 1690, title: '[00:26:40] Act I.iii — Goneril Instructs Oswald',
+        stageAction: 'Goneril orders her steward Oswald to treat Lear and his knights with cold negligence.',
+        props: [], storm: 0.15, dead: [],
+        staging: {
+          goneril: S(0.44, 0.54, 'command', { to: 'oswald' }),
+          oswald:  S(0.58, 0.56, 'bow', { to: 'goneril' })
+        },
+        lines: [
+          { s: 'goneril', t: 'Did my father strike my gentleman for chiding of his fool?' },
+          { s: 'oswald',  t: 'Ay, madam.', do: { oswald: { p: 'stand' } } },
+          { s: 'goneril', t: 'Put on what weary negligence you please, you and your fellows; I’d have it come to question.',
+            do: { goneril: { p: 'point' }, oswald: { p: 'strut' } }, sd: 'Oswald smirks; he will enjoy this' }
+        ]
+      },
+      { start: 1690, end: 2295, title: '[00:28:13] Act I.iv (a) — Kent Trips Oswald; The Fool Offers His Coxcomb',
+        stageAction: 'Disguised Kent trips Oswald onto the floor; the Fool dances around Lear waving his jester’s coxcomb.',
+        props: [], storm: 0.25, dead: [],
+        staging: {
+          lear: S(0.46, 0.54, 'converse', { to: 'kent' }),
+          kent: S(0.60, 0.54, 'bow', { to: 'lear' })
+        },
+        lines: [
+          { s: 'kent',   t: 'I do profess to be no less than I seem; to serve him truly that will put me in trust, and to eat no fish.', mid: { do: { kent: { p: 'stand' } } }, sd: 'Kent, disguised as the servant Caius, offers Lear his service' },
+          { s: 'oswald', t: 'I’ll not be strucken, my lord!', do: { oswald: S(0.72, 0.58, 'strut', { to: 'lear' }), lear: { p: 'point', to: 'oswald' } }, mid: { do: { oswald: { p: 'cower' }, lear: { p: 'rage' } }, fx: ['thud'] }, sd: 'Oswald insolently ignores the King; Lear strikes him' },
+          { s: 'kent',   t: 'Nor tripped neither, you base football player!', do: { kent: { x: 0.66, p: 'point', to: 'oswald' }, oswald: { x: 0.74, p: 'collapse' } }, fx: ['thud', 'spatter:oswald'], sd: 'Kent hooks Oswald’s legs and sends him sprawling' },
+          { s: 'fool',   t: 'Let me hire him too: here’s my coxcomb! Why, this fellow has banished two on’s daughters, and did the third a blessing against his will!',
+            do: { fool: S(0.34, 0.54, 'dance', { to: 'lear' }), oswald: null, kent: { p: 'stand', to: 'fool' }, lear: { p: 'converse', to: 'fool' } }, sd: 'The Fool capers in, offering Kent his coxcomb' },
+          { s: 'fool',   t: 'Thou hadst little wit in thy bald crown when thou gav’st thy golden one away!', do: { fool: { x: 0.38, p: 'point' } } }
+        ]
+      },
+      { start: 2295, end: 2765, title: '[00:38:15] Act I.iv (b) — Lear Curses Goneril ("Sharp-tooth’d unkindness")',
+        stageAction: 'Goneril demands Lear halve his knights; Lear drops to his knees to call down Nature’s curse upon her.',
+        props: [], storm: 0.55, dead: [],
+        staging: {
+          lear:    S(0.46, 0.56, 'gesture', { to: 'goneril' }),
+          goneril: S(0.64, 0.52, 'defy', { to: 'lear' }),
+          fool:    S(0.32, 0.58, 'stand', { to: 'lear' }),
+          albany:  S(0.78, 0.56, 'stand', { to: 'goneril' }),
+          kent:    S(0.22, 0.54, 'stand')
+        },
+        lines: [
+          { s: 'lear',    t: 'Does any here know me? This is not Lear: does Lear walk thus? speak thus? Who is it that can tell me who I am?', do: { lear: { p: 'clutchHead' } } },
+          { s: 'fool',    t: 'Lear’s shadow.', do: { fool: { p: 'point' } } },
+          { s: 'goneril', t: 'Be then desired to disquantity your train; and the remainders that shall still depend, to be such men as may besort your age.', do: { goneril: { p: 'command' }, lear: { p: 'stand' }, fool: { p: 'cower' } } },
+          { s: 'lear',    t: 'Darkness and devils! Saddle my horses; call my train together! Hear, Nature, hear; dear goddess, hear!',
+            do: { lear: { p: 'rage' }, albany: { p: 'plead', to: 'lear' } }, fx: ['thunder'],
+            mid: { do: { lear: { p: 'kneelCurse' } }, fx: ['flash'], sd: 'Lear falls to his knees and calls on Nature to curse his daughter' } },
+          { s: 'lear',    t: 'How sharper than a serpent’s tooth it is to have a thankless child!', do: { lear: { p: 'point', x: 0.50 }, goneril: { p: 'turnAway' } } }
+        ]
+      },
+      { start: 2765, end: 2870, title: '[00:46:07] Act I.v — Lear & The Fool ("O, let me not be mad!")',
+        stageAction: 'Lear clutches his head beside the Fool as horses are readied for Gloucester’s castle.',
+        props: [], storm: 0.35, dead: [],
+        staging: {
+          lear: S(0.46, 0.54, 'stand', { to: 'fool' }),
+          fool: S(0.58, 0.56, 'dance', { to: 'lear' }),
+          kent: S(0.30, 0.56, 'stand')
+        },
+        lines: [
+          { s: 'fool', t: 'Thou canst tell why one’s nose stands i’ the middle on’s face? To keep one’s eyes of either side’s nose!' },
+          { s: 'lear', t: 'I did her wrong—', do: { lear: { p: 'turnAway' }, fool: { p: 'stand' } }, sd: 'Lear turns away, thinking of Cordelia' },
+          { s: 'fool', t: 'Thou shouldst not have been old till thou hadst been wise.', do: { fool: { p: 'point' } } },
+          { s: 'lear', t: 'O, let me not be mad, not mad, sweet heaven! Keep me in temper: I would not be mad!', do: { lear: { p: 'clutchHead' }, fool: { p: 'plead' } } }
+        ]
+      },
+      { start: 2870, end: 3250, title: '[00:47:51] Act II.i — Edmund Stages the Mock Swordfight with Edgar',
+        stageAction: 'Edmund clashes blades with Edgar in the dark, then wounds his own arm to trick Gloucester.',
+        props: [], storm: 0.45, dead: [],
+        staging: {
+          edmund: S(0.52, 0.54, 'converse', { to: 'curan' }),
+          curan:  S(0.38, 0.58, 'converse', { to: 'edmund' })
+        },
+        lines: [
+          { s: 'curan',      t: 'Have you heard of no likely wars toward, ’twixt the Dukes of Cornwall and Albany?', mid: { do: { curan: null } } },
+          { s: 'edmund',     t: 'Pardon me: in cunning I must draw my sword upon you: draw, seem to defend yourself! Fly, brother! Torches, torches!',
+            do: { edgar: S(0.62, 0.54, 'duel', { to: 'edmund' }), edmund: { x: 0.50, p: 'duel', to: 'edgar' } }, sd: 'The brothers cross swords in the dark — a fight staged for the household' },
+          { s: 'edmund',     t: 'Look, sir, I bleed. Seeing how loathly opposite I stood to his unnatural purpose, he with his prepared sword he charges home!',
+            do: { edgar: null, edmund: { p: 'clutchArm' }, gloucester: S(0.32, 0.56, 'holdTorch', { to: 'edmund' }) }, fx: ['blood:edmund'], sd: 'Edgar flees; Edmund cuts his own arm and shows the blood' },
+          { s: 'gloucester', t: 'Let him fly far: not in this land shall he remain uncaught!',
+            do: { gloucester: { p: 'rage' }, cornwall: S(0.74, 0.54, 'command', { to: 'edmund' }), regan: S(0.84, 0.56, 'stand', { to: 'edmund' }) }, fx: ['thunder'] }
+        ]
+      },
+      { start: 3250, end: 3720, title: '[00:54:11] Act II.ii — Kent Beats Oswald & Is Locked in the Stocks',
+        stageAction: 'Kent draws on cowering Oswald; Cornwall and Regan clap Kent’s legs into heavy wooden stocks.',
+        props: [], storm: 0.50, dead: [],
+        staging: {
+          kent:   S(0.50, 0.56, 'strike', { to: 'oswald' }),
+          oswald: S(0.36, 0.58, 'cower', { to: 'kent' })
+        },
+        lines: [
+          { s: 'kent',       t: 'A knave; a rascal; an eater of broken meats; a base, proud, shallow, beggarly, three-suited, hundred-pound, filthy, worsted-stocking knave!', sd: 'Kent thrashes Oswald with the flat of his sword' },
+          { s: 'cornwall',   t: 'Fetch forth the stocks! You stubborn ancient knave, you reverend braggart, we’ll teach you!',
+            do: { cornwall: S(0.66, 0.52, 'command', { to: 'kent' }), regan: S(0.78, 0.52, 'point', { to: 'kent' }), kent: { p: 'defy', to: 'cornwall' }, oswald: { x: 0.70, y: 0.60, p: 'strut', to: 'kent' } } },
+          { s: 'regan',      t: 'Till noon! Till night, my lord; and all night too!', do: { kent: { x: 0.48, y: 0.60, p: 'stocked' } }, fx: ['thud'], sd: 'Kent’s ankles are locked into the stocks' },
+          { s: 'gloucester', t: 'Let me beseech your grace not to do so: the King must take it ill.', do: { gloucester: S(0.26, 0.56, 'plead', { to: 'cornwall' }) } },
+          { s: 'kent',       t: 'Fortune, good night: smile once more; turn thy wheel!',
+            do: { cornwall: null, regan: null, oswald: null, gloucester: null }, sd: 'Left alone in the stocks, Kent dozes' }
+        ]
+      },
+      { start: 3720, end: 3870, title: '[01:02:04] Act II.iii — Edgar Strips into Poor Tom ("Edgar I nothing am")',
+        stageAction: 'Alone in the woods, Edgar tears off his courtly garments, knots his hair, and smears his face with mire.',
+        props: [], storm: 0.45, dead: [],
+        staging: { edgar: S(0.50, 0.56, 'cower', { face: 'L' }) },
+        lines: [
+          { s: 'edgar', t: 'I heard myself proclaim’d; and by the happy hollow of a tree escaped the hunt.', sd: 'Edgar crouches, hiding from the hunt' },
+          { s: 'edgar', t: 'My face I’ll grime with filth, blanket my loins, elf all my hair in knots, and with presented nakedness out-face the winds!',
+            do: { edgar: { p: 'tearClothes', face: null } }, fx: ['tom', 'spatter:edgar'], sd: 'He rips away his clothes and smears himself with mud' },
+          { s: 'edgar', t: 'Poor Turlygod! poor Tom! That’s something yet: Edgar I nothing am.', do: { edgar: { p: 'rave' } } }
+        ]
+      },
+      { start: 3870, end: 4790, title: '[01:04:31] Act II.iv — Goneril & Regan Strip Lear’s Train ("Reason not the need!")',
+        stageAction: 'Lear finds Kent in the stocks; Goneril and Regan join hands and strip Lear’s followers down to none.',
+        props: [], storm: 0.75, dead: [],
+        staging: {
+          kent:       S(0.28, 0.62, 'stocked', { to: 'lear' }),
+          lear:       S(0.46, 0.52, 'stand', { to: 'kent' }),
+          fool:       S(0.36, 0.56, 'stand', { to: 'lear' })
+        },
+        lines: [
+          { s: 'lear',    t: 'O, how this mother swells up toward my heart! Hysterica passio, down, thou climbing sorrow!', do: { lear: { p: 'clutchHead' } }, sd: 'Lear sees his messenger in the stocks and reels' },
+          { s: 'lear',    t: 'Dear daughter, I confess that I am old; age is unnecessary: on my knee I beg that you’ll vouchsafe me raiment, bed, and food.',
+            do: { regan: S(0.64, 0.50, 'defy', { to: 'lear' }), cornwall: S(0.84, 0.52, 'stand', { to: 'lear' }), gloucester: S(0.20, 0.54, 'stand', { to: 'lear' }),
+                  lear: { x: 0.52, p: 'beg', to: 'regan' }, kent: { x: 0.22, p: 'stand' } }, sd: 'Kent is freed; Lear mockingly kneels before Regan' },
+          { s: 'goneril', t: 'Hear me, my lord: what need you five and twenty, ten, or five, to follow in a house where twice so many have a command to tend you?',
+            do: { goneril: S(0.74, 0.50, 'command', { to: 'lear' }), lear: { p: 'plead', to: 'goneril' }, regan: { x: 0.66, p: 'takeHand', to: 'goneril' } }, sd: 'Goneril arrives; the sisters join hands against him' },
+          { s: 'regan',   t: 'What need one?', do: { regan: { p: 'point', to: 'lear' }, lear: { p: 'clutchHead' }, fool: { p: 'cower' } }, fx: ['thud'] },
+          { s: 'lear',    t: 'O, reason not the need! You unnatural hags, I will have such revenges on you both that all the world shall—I will do such things! O Fool, I shall go mad!',
+            do: { lear: { p: 'rage', to: 'goneril' }, gloucester: { p: 'plead' } }, fx: ['thunder'],
+            mid: { do: { lear: null, fool: null, kent: null }, fx: ['flash'], sd: 'Lear rushes out into the rising storm; the Fool and Kent follow' } }
+        ]
+      },
+      { start: 4790, end: 4880, title: '[01:19:51] Act III.i — Kent Sends the Gentleman to Cordelia at Dover',
+        stageAction: 'Against driving rain, Kent hands a ring to the Gentleman to carry to Cordelia.',
+        props: [], storm: 0.85, dead: [],
+        staging: {
+          kent:   S(0.45, 0.56, 'gesture', { to: 'doctor' }),
+          doctor: S(0.58, 0.56, 'shiver', { to: 'kent' })
+        },
+        lines: [
+          { s: 'kent',   t: 'Where’s the King?' },
+          { s: 'doctor', t: 'Contending with the fretful elements; none with him but the Fool, who labors to out-jest his heart-struck injuries.', do: { doctor: { p: 'point' } } },
+          { s: 'kent',   t: 'Make your speed to Dover. If you shall see Cordelia, show her this ring.', do: { kent: { p: 'takeHand' }, doctor: { p: 'takeHand' } },
+            mid: { do: { doctor: null }, sd: 'The Gentleman takes the ring and runs for Dover' } }
+        ]
+      },
+      { start: 4880, end: 5130, title: '[01:21:22] Act III.ii — The Storm on the Heath ("Blow, winds, and crack your cheeks!")',
+        stageAction: 'Torrential ink rain and lightning lash the stage; Lear raises both arms to the sky while the Fool shivers at his side.',
+        props: [], storm: 1.00, dead: [],
+        staging: {
+          lear: S(0.50, 0.52, 'skyRage'),
+          fool: S(0.38, 0.58, 'shiver', { to: 'lear' })
+        },
+        lines: [
+          { s: 'lear', t: 'Blow, winds, and crack your cheeks! rage! blow! You cataracts and hurricanoes, spout till you have drench’d our steeples!', fx: ['thunder'] },
+          { s: 'fool', t: 'O nuncle, court holy-water in a dry house is better than this rain-water out o’ door!', do: { fool: { x: 0.42, p: 'takeHand', to: 'lear' }, lear: { p: 'stand' } }, sd: 'The Fool tugs at Lear’s sleeve, begging him to shelter' },
+          { s: 'lear', t: 'Rumble thy bellyful! Spit, fire! spout, rain! Nor rain, wind, thunder, fire, are my daughters: I tax not you, you elements, with unkindness!',
+            do: { lear: { x: 0.54, p: 'skyRage' }, fool: { x: 0.36, p: 'cower' } }, fx: ['thunder'] },
+          { s: 'lear', t: 'I am a man more sinn’d against than sinning. My wits begin to turn.',
+            do: { lear: { p: 'clutchHead' }, kent: S(0.66, 0.56, 'guide', { to: 'lear' }) }, sd: 'Kent finds them and gently leads the King toward shelter' }
+        ]
+      },
+      { start: 5130, end: 5250, title: '[01:25:35] Act III.iii — Gloucester Confides in Edmund; Edmund Betrays Him',
+        stageAction: 'Gloucester whispers to Edmund of the French landing and goes to aid Lear; Edmund vows to inform Cornwall.',
+        props: [], storm: 0.50, dead: [],
+        staging: {
+          gloucester: S(0.44, 0.54, 'whisper', { to: 'edmund' }),
+          edmund:     S(0.56, 0.54, 'stand', { to: 'gloucester' })
+        },
+        lines: [
+          { s: 'gloucester', t: 'Alack, alack, Edmund, I like not this unnatural dealing. If I die for it, the King my old master must be relieved.',
+            mid: { do: { gloucester: null } } },
+          { s: 'edmund',     t: 'This courtesy, forbid thee, shall the Duke instantly know! The younger rises when the old doth fall.',
+            do: { edmund: { x: 0.50, p: 'holdLetter' } }, sd: 'Edmund raises his father’s secret letter, already plotting' }
+        ]
+      },
+      { start: 5250, end: 5730, title: '[01:27:31] Act III.iv — Poor Tom Emerges from the Hovel ("Unaccommodated man")',
+        stageAction: 'Shivering Poor Tom (Edgar) bursts from the hovel; Lear begins tearing at his own royal garments.',
+        props: ['hovel'], storm: 0.90, dead: [],
+        staging: {
+          lear: S(0.44, 0.54, 'stand'),
+          fool: S(0.32, 0.58, 'shiver', { to: 'lear' }),
+          kent: S(0.24, 0.54, 'stand', { to: 'lear' })
+        },
+        lines: [
+          { s: 'lear',  t: 'Poor naked wretches, wheresoe’er you are, that bide the pelting of this pitiless storm—O, I have ta’en too little care of this!', do: { lear: { p: 'pray' } }, sd: 'Lear kneels in the rain and prays — for the first time, for others' },
+          { s: 'edgar', t: 'Away! the foul fiend follows me! Through the sharp hawthorn blows the cold wind. Tom’s a-cold!',
+            do: { edgar: S(0.62, 0.54, 'rave', { to: 'lear' }), fool: { p: 'cower', to: 'edgar' }, lear: { p: 'stand', to: 'edgar' } }, fx: ['flash'], sd: 'Poor Tom bursts raving from the hovel; the Fool shrieks' },
+          { s: 'lear',  t: 'Didst thou give all to thy two daughters? And art thou come to this?', do: { lear: { x: 0.50, p: 'converse', to: 'edgar' }, edgar: { p: 'shiver' } } },
+          { s: 'lear',  t: 'Is man no more than this? Thou art the thing itself: unaccommodated man is no more but such a poor, bare, forked animal as thou art. Off, off, you lendings!',
+            do: { lear: { p: 'tearClothes' }, kent: { x: 0.36, p: 'plead' } }, fx: ['spatter:lear'], sd: 'Lear tears at his royal robes to be naked like Tom' },
+          { s: 'lear',  t: 'First let me talk with this philosopher. What is the cause of thunder?',
+            do: { lear: { p: 'takeHand', to: 'edgar' }, edgar: { p: 'takeHand', to: 'lear' }, gloucester: S(0.80, 0.56, 'holdTorch', { to: 'lear' }) }, fx: ['thunder'], sd: 'Gloucester arrives with a torch; Lear clings to his “philosopher”' }
+        ]
+      },
+      { start: 5730, end: 5810, title: '[01:35:32] Act III.v — Cornwall Names Edmund Earl of Gloucester',
+        stageAction: 'Edmund hands his father’s secret letter to Cornwall, who invests him with Gloucester’s title.',
+        props: [], storm: 0.45, dead: [],
+        staging: {
+          cornwall: S(0.45, 0.54, 'readLetter', { to: 'edmund' }),
+          edmund:   S(0.57, 0.54, 'bow', { to: 'cornwall' })
+        },
+        lines: [
+          { s: 'cornwall', t: 'True or false, it hath made thee Earl of Gloucester. Seek out where thy father is, that he may be ready for our apprehension.',
+            do: { edmund: { x: 0.54, p: 'kneel' } }, mid: { do: { cornwall: { p: 'investiture' } }, sd: 'Edmund kneels; Cornwall lays a hand on his shoulder — the new Earl' } },
+          { s: 'edmund',   t: 'I will persever in my course of loyalty, though the conflict be sore between that and my blood.', do: { edmund: { p: 'bow' }, cornwall: { p: 'stand' } } }
+        ]
+      },
+      { start: 5810, end: 6295, title: '[01:36:50] Act III.vi — The Mock Trial of the Joint-Stool in the Farmhouse',
+        stageAction: 'Lear, Poor Tom, and the Fool arraign a wooden stool as Goneril and Regan; the Fool speaks his last.',
+        props: ['stool'], storm: 0.55, dead: [],
+        staging: {
+          lear:  S(0.40, 0.54, 'command', { to: 'edgar' }),
+          edgar: S(0.62, 0.58, 'shiver', { to: 'lear' }),
+          fool:  S(0.30, 0.58, 'dance', { to: 'lear' }),
+          kent:  S(0.20, 0.56, 'stand', { to: 'lear' })
+        },
+        lines: [
+          { s: 'lear',  t: 'I will arraign them straight. Come, sit thou here, most learned justicer; thou, sapient sir, sit here. Now, you she-foxes!',
+            do: { edgar: { p: 'sitGround' } }, mid: { do: { fool: { x: 0.33, p: 'sitGround' }, lear: { p: 'point', to: 'edgar' } } }, sd: 'Lear seats his madman “judges” beside the stool' },
+          { s: 'fool',  t: 'Come hither, mistress. Is your name Goneril?', do: { fool: { x: 0.42, p: 'point', face: 'R' } } },
+          { s: 'lear',  t: 'She cannot deny it! Cry you mercy, I took you for a joint-stool.', do: { lear: { x: 0.44, p: 'bow', face: 'R' } }, sd: 'Lear bows gravely to the stool' },
+          { s: 'lear',  t: 'Then let them anatomize Regan; see what breeds about her heart. Is there any cause in nature that makes these hard hearts?',
+            do: { lear: { p: 'clutchHead', face: null }, kent: { x: 0.30, p: 'plead' } } },
+          { s: 'fool',  t: 'And I’ll go to bed at noon.', do: { lear: { x: 0.40, p: 'sleep' }, fool: { x: 0.36, p: 'bow', face: null } },
+            mid: { do: { fool: null }, sd: 'The Fool bows — and is never seen again' } }
+        ]
+      },
+      { start: 6295, end: 6665, title: '[01:44:58] Act III.vii — The Blinding of Gloucester ("Out, vile jelly!")',
+        stageAction: 'Gloucester is bound to a chair; Cornwall gouges out his eyes while a Servant draws his sword against Cornwall.',
+        props: [], storm: 0.85, dead: ['fool'],
+        staging: {
+          gloucester: S(0.50, 0.56, 'boundChair', { face: 'R' }),
+          cornwall:   S(0.64, 0.54, 'command', { to: 'gloucester' }),
+          regan:      S(0.74, 0.54, 'point', { to: 'gloucester' }),
+          oldman:     S(0.28, 0.56, 'stand', { to: 'gloucester' }),
+          goneril:    S(0.82, 0.48, 'turnAway', { to: 'gloucester' }),
+          edmund:     S(0.88, 0.48, 'turnAway', { to: 'gloucester' })
+        },
+        lines: [
+          { s: 'cornwall',   t: 'Bind fast his corky arms! Where hast thou sent the King?', do: { goneril: null, edmund: null }, fx: ['thud'], sd: 'Gloucester is lashed to a chair in his own hall' },
+          { s: 'gloucester', t: 'To Dover! Because I would not see thy cruel nails pluck out his poor old eyes!', do: { regan: { x: 0.58, p: 'pluck', to: 'gloucester' } }, sd: 'Regan plucks at the old man’s beard' },
+          { s: 'cornwall',   t: 'See’t shalt thou never! Fellows, hold the chair. Upon these eyes of thine I’ll set my foot!',
+            do: { regan: { x: 0.72, p: 'stand' }, cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' } }, mid: { fx: ['blind1', 'blood:gloucester', 'thunder'], sd: 'Cornwall puts out one of Gloucester’s eyes' } },
+          { s: 'oldman',     t: 'Hold your hand, my lord! I have served you ever since I was a child, but better service have I never done you than now to bid you hold!',
+            do: { oldman: { x: 0.36, p: 'duel', to: 'cornwall' }, cornwall: { x: 0.46, p: 'duel', to: 'oldman' } },
+            mid: { do: { regan: { x: 0.30, p: 'strike', to: 'oldman' }, oldman: { x: 0.36, p: 'collapse' }, cornwall: { x: 0.48, p: 'clutchArm' } }, fx: ['blood:oldman', 'blood:cornwall'], sd: 'The Servant wounds Cornwall — Regan stabs him from behind' } },
+          { s: 'cornwall',   t: 'Out, vile jelly! Where is thy lustre now?', do: { cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' }, regan: { x: 0.30, p: 'stand' } }, fx: ['blind', 'blood:gloucester', 'thunder'], sd: 'Cornwall puts out the other eye' },
+          { s: 'regan',      t: 'Go thrust him out at gates, and let him smell his way to Dover!',
+            do: { regan: { x: 0.72, p: 'point' }, cornwall: { x: 0.66, p: 'clutchArm' }, gloucester: { x: 0.40, p: 'blindWalk', face: 'L' } }, mid: { do: { gloucester: { x: 0.10, p: 'blindWalk' } } } }
+        ]
+      },
+      { start: 6665, end: 6930, title: '[01:51:08] Act IV.i — Blind Gloucester & Poor Tom ("As flies to wanton boys")',
+        stageAction: 'With a crimson bandage across his eyes, Gloucester takes Poor Tom’s arm on the road to Dover.',
+        props: [], storm: 0.30, dead: ['fool'],
+        staging: {
+          gloucester: S(0.42, 0.56, 'leadBlind', { to: 'oldman', face: 'R', w: 1 }),
+          oldman:     S(0.52, 0.58, 'guide', { to: 'gloucester', face: 'R', w: 1 }),
+          edgar:      S(0.74, 0.56, 'shiver', { to: 'gloucester' })
+        },
+        lines: [
+          { s: 'oldman',     t: 'Alack, sir, you cannot see your way.', do: { oldman: { p: 'plead', w: 0, face: null } } },
+          { s: 'gloucester', t: 'I have no way, and therefore want no eyes; I stumbled when I saw.', do: { gloucester: { w: 0, p: 'blindWalk', face: null } } },
+          { s: 'gloucester', t: 'As flies to wanton boys, are we to the gods; they kill us for their sport.', do: { gloucester: { p: 'skyPoint', face: null } }, fx: ['thud'] },
+          { s: 'gloucester', t: 'Know’st thou the way to Dover? Bring me but to the very brim of it: give me thy arm.',
+            do: { edgar: { x: 0.54, p: 'guide', to: 'gloucester' }, gloucester: { x: 0.46, p: 'leadBlind', to: 'edgar' }, oldman: { x: 0.30 } }, sd: 'Gloucester gropes for Tom’s arm — not knowing it is his own son’s' },
+          { s: 'edgar',      t: 'Poor Tom shall lead thee.', do: { oldman: null, edgar: { face: 'R', w: 1 }, gloucester: { face: 'R', w: 1 } }, sd: 'The blind father and the son he wronged set out for Dover' }
+        ]
+      },
+      { start: 6930, end: 7235, title: '[01:55:32] Act IV.ii — Goneril Kisses Edmund; Albany Condemns Her',
+        stageAction: 'Goneril pledges herself to Edmund, then clashes bitterly with Albany as news arrives of Cornwall’s death.',
+        props: [], storm: 0.40, dead: ['fool', 'cornwall'],
+        staging: {
+          goneril: S(0.46, 0.54, 'converse', { to: 'edmund' }),
+          edmund:  S(0.36, 0.54, 'strut', { to: 'goneril' }),
+          oswald:  S(0.74, 0.56, 'stand', { to: 'goneril' })
+        },
+        lines: [
+          { s: 'goneril', t: 'Decline your head: this kiss, if it durst speak, would stretch thy spirits up into the air!',
+            do: { goneril: { x: 0.44, p: 'embrace' }, edmund: { x: 0.39, p: 'embrace' } }, sd: 'Goneril kisses Edmund' },
+          { s: 'albany',  t: 'O Goneril! You are not worth the dust which the rude wind blows in your face! Tigers, not daughters, what have you perform’d?',
+            do: { edmund: null, albany: S(0.62, 0.54, 'rage', { to: 'goneril' }), goneril: { p: 'defy', to: 'albany' } }, fx: ['thunder'] },
+          { s: 'goneril', t: 'Milk-liver’d man! That bear’st a cheek for blows, a head for wrongs!', do: { goneril: { x: 0.50, p: 'point' }, albany: { p: 'stand' } } },
+          { s: 'albany',  t: 'The Duke of Cornwall’s dead: slain by his servant, going to put out the other eye of Gloucester!',
+            do: { albany: { p: 'clutchHead' }, goneril: { p: 'turnAway' } }, sd: 'Goneril turns aside — Regan is now a widow, and Edmund is with her' }
+        ]
+      },
+      { start: 7235, end: 7420, title: '[02:00:35] Act IV.iv & IV.v — Cordelia Seeks Lear; Regan Tries to Unseal Goneril’s Letter',
+        stageAction: 'Cordelia sends soldiers through the high-grown corn to find Lear; Regan tries to bribe Oswald for Goneril’s letter.',
+        props: [], storm: 0.25, dead: ['fool', 'cornwall'],
+        staging: {
+          cordelia: S(0.36, 0.54, 'gesture', { to: 'doctor' }),
+          doctor:   S(0.48, 0.54, 'stand', { to: 'cordelia' })
+        },
+        lines: [
+          { s: 'cordelia', t: 'Alack, ’tis he: why, he was met even now as mad as the vex’d sea; singing aloud; crown’d with rank fumiter and furrow-weeds!', do: { cordelia: { p: 'clutchHead' } } },
+          { s: 'doctor',   t: 'There is means, madam: our foster-nurse of nature is repose, the which he lacks.', do: { cordelia: { p: 'takeHand' }, doctor: { p: 'takeHand' } } },
+          { s: 'regan',    t: 'Why should she write to Edmund? Let me unseal the letter. If you do chance to hear of that blind traitor, preferment falls on him that cuts him off!',
+            do: { cordelia: null, doctor: null, regan: S(0.56, 0.54, 'takeHand', { to: 'oswald' }), oswald: S(0.68, 0.54, 'hideLetter', { to: 'regan' }) }, sd: 'Regan reaches for the letter; Oswald holds it back' }
+        ]
+      },
+      { start: 7420, end: 8080, title: '[02:03:46] Act IV.vi (a) — Dover Cliff & Lear Crowned with Wildflowers ("Every inch a king")',
+        stageAction: 'Gloucester pitches forward at the imaginary brink of Dover Cliff; Lear enters crowned with weeds and wildflowers.',
+        props: ['cliff'], storm: 0.35, dead: ['fool', 'cornwall'],
+        staging: {
+          gloucester: S(0.34, 0.56, 'leadBlind', { to: 'edgar', face: 'L', w: 1 }),
+          edgar:      S(0.26, 0.56, 'guide', { to: 'gloucester', face: 'L', w: 1 })
+        },
+        lines: [
+          { s: 'edgar',      t: 'Come on, sir; here’s the place: stand still. How fearful and dizzy ’tis to cast one’s eyes so low!',
+            do: { edgar: { x: 0.40, p: 'point', w: 0, face: 'L' }, gloucester: { x: 0.30, p: 'blindWalk', w: 0 } }, sd: 'Edgar describes a vast drop — but the ground is flat' },
+          { s: 'gloucester', t: 'O you mighty gods! This world I do renounce, and, in your sights, shake patiently my great affliction off!',
+            do: { gloucester: { p: 'pray' }, edgar: { x: 0.46, p: 'stand' } }, mid: { do: { gloucester: { x: 0.26, p: 'collapse' } }, fx: ['thud', 'spatter:gloucester'], sd: 'Gloucester throws himself from the “cliff” — and falls flat on the grass' } },
+          { s: 'lear',       t: 'They cannot touch me for coining; I am the King himself!',
+            do: { lear: S(0.62, 0.52, 'weedCrown', { to: 'gloucester' }), gloucester: { x: 0.30, p: 'sitGround', face: 'R' }, edgar: { x: 0.42, p: 'kneel', to: 'lear', face: null } }, sd: 'Mad Lear wanders in, crowned with weeds and flowers' },
+          { s: 'gloucester', t: 'Is’t not the King?', do: { gloucester: { p: 'sitPlead' } } },
+          { s: 'lear',       t: 'Ay, every inch a king! Let me wipe my hand first; it smells of mortality. When we are born, we cry that we are come to this great stage of fools!',
+            do: { lear: { x: 0.56, p: 'command' } }, mid: { do: { lear: { p: 'weedCrown' }, doctor: S(0.82, 0.56, 'plead', { to: 'lear' }) }, sd: 'Cordelia’s men arrive to bring the King to her' } }
+        ]
+      },
+      { start: 8080, end: 8490, title: '[02:14:40] Act IV.vi (b) — Edgar Defends Gloucester & Slays Oswald',
+        stageAction: 'Oswald draws his sword to murder blind Gloucester; Edgar strikes him down and opens Goneril’s letter.',
+        props: ['cliff'], storm: 0.45, dead: ['fool', 'cornwall'],
+        staging: {
+          gloucester: S(0.34, 0.56, 'sitGround', { face: 'R' }),
+          edgar:      S(0.42, 0.56, 'stand', { to: 'oswald' }),
+          oswald:     S(0.72, 0.56, 'duel', { to: 'gloucester' })
+        },
+        lines: [
+          { s: 'oswald', t: 'A proclaim’d prize! Most happy! That eyeless head of thine was first framed flesh to raise my fortunes!',
+            mid: { do: { edgar: { x: 0.48, p: 'duel', to: 'oswald' }, oswald: { x: 0.58, to: 'edgar' } }, sd: 'Edgar steps between his father and the blade' } },
+          { s: 'edgar',  t: 'Chill not let go, zir, without vurther ’casion! Keep out, che vor ye, or ise try whether your costard or my ballow be the harder!', do: { edgar: { p: 'strike', to: 'oswald' } } },
+          { s: 'oswald', t: 'Slave, thou hast slain me! Villain, take my purse... give the letters which thou find’st about me to Edmund Earl of Gloucester.',
+            do: { oswald: { x: 0.60, p: 'fallen' }, edgar: { p: 'stand' } }, fx: ['blood:oswald', 'thud'], sd: 'Oswald falls, mortally struck' },
+          { s: 'edgar',  t: 'Let’s see these pockets: the letters that he speaks of may be my friends. O indistinct space of woman’s will! A plot upon her virtuous husband’s life!',
+            do: { edgar: { x: 0.52, p: 'readLetter' } }, sd: 'Edgar reads Goneril’s plot to murder Albany' }
+        ]
+      },
+      { start: 8490, end: 8905, title: '[02:21:31] Act IV.vii — Lear Awakens to Cordelia ("A wheel of fire" / "No cause, no cause")',
+        stageAction: 'Restored in fresh robes, Lear wakes in his chair and tries to kneel before Cordelia as she holds his hands.',
+        props: [], storm: 0.05, dead: ['fool', 'cornwall', 'oswald'],
+        staging: {
+          lear:     S(0.44, 0.56, 'sit', { face: 'R' }),
+          cordelia: S(0.56, 0.56, 'stand', { to: 'lear' }),
+          kent:     S(0.28, 0.56, 'stand', { to: 'lear' }),
+          doctor:   S(0.72, 0.56, 'stand', { to: 'lear' })
+        },
+        lines: [
+          { s: 'cordelia', t: 'O my dear father! Restoration hang thy medicine on my lips; and let this kiss repair those violent harms that my two sisters have in thy reverence made!',
+            do: { cordelia: { x: 0.52, p: 'kiss', to: 'lear' } }, sd: 'Cordelia bends and kisses her sleeping father' },
+          { s: 'lear',     t: 'You do me wrong to take me out o’ the grave: thou art a soul in bliss; but I am bound upon a wheel of fire, that mine own tears do scald like molten lead.',
+            do: { lear: { p: 'wake' }, cordelia: { x: 0.56, p: 'stand' } } },
+          { s: 'lear',     t: 'Do not laugh at me; for, as I am a man, I think this lady to be my child Cordelia.', do: { lear: { x: 0.46, p: 'beg', face: null, to: 'cordelia' } }, sd: 'Lear struggles out of the chair to kneel to her' },
+          { s: 'cordelia', t: 'And so I am, I am!', do: { cordelia: { x: 0.54, p: 'kneelEmbrace', to: 'lear' } } },
+          { s: 'lear',     t: 'Be your tears wet? Yes, faith. I know you do not love me; for your sisters have, as I do remember, done me wrong: you have some cause, they have not.',
+            do: { lear: { p: 'touchFace', to: 'cordelia' }, cordelia: { p: 'kneel' } }, sd: 'He touches her face to feel her tears' },
+          { s: 'cordelia', t: 'No cause, no cause.', do: { lear: { p: 'kneelEmbrace', to: 'cordelia' }, cordelia: { p: 'kneelEmbrace', to: 'lear' } }, sd: 'They hold each other' }
+        ]
+      },
+      { start: 8905, end: 9370, title: '[02:28:29] Act V.i & V.ii — The Battle & "Ripeness is all"',
+        stageAction: 'Armies clash across the stage; Edgar hurries blind Gloucester away from the lost battle.',
+        props: [], storm: 0.65, dead: ['fool', 'cornwall', 'oswald'], battle: true,
+        staging: {
+          edmund:  S(0.62, 0.54, 'strut', { to: 'goneril' }),
+          goneril: S(0.80, 0.50, 'stand', { to: 'edmund' }),
+          regan:   S(0.88, 0.54, 'stand', { to: 'edmund' }),
+          albany:  S(0.74, 0.56, 'command', { to: 'edmund' })
+        },
+        lines: [
+          { s: 'edmund',     t: 'To both these sisters have I sworn my love; each jealous of the other, as the stung are of the adder. Which of them shall I take?',
+            do: { goneril: { p: 'defy', to: 'regan' }, regan: { p: 'defy', to: 'goneril' } }, mid: { do: { edmund: { p: 'duel', x: 0.66, to: 'albany' }, albany: { p: 'point' }, goneril: null, regan: null } }, sd: 'Edmund weighs the jealous sisters, then draws for battle' },
+          { s: 'edgar',      t: 'Away, old man; give me thy hand; away! King Lear hath lost, he and his daughter ta’en.',
+            do: { edmund: null, albany: null, gloucester: S(0.26, 0.58, 'sitGround', { face: 'R' }), edgar: S(0.38, 0.56, 'takeHand', { to: 'gloucester' }) }, fx: ['thunder'], sd: 'Edgar runs from the lost battle to his father' },
+          { s: 'gloucester', t: 'No farther, sir; a man may rot even here.', do: { gloucester: { p: 'sleep' }, edgar: { p: 'kneel', to: 'gloucester' } } },
+          { s: 'edgar',      t: 'What, in ill thoughts again? Men must endure their going hence, even as their coming hither: ripeness is all. Come on.',
+            do: { edgar: { x: 0.22, p: 'guide', to: 'gloucester' }, gloucester: { x: 0.30, p: 'leadBlind', to: 'edgar' } }, mid: { do: { edgar: null, gloucester: null }, sd: 'He raises his father and they go — the last time we see Gloucester alive' } }
+        ]
+      },
+      { start: 9370, end: 9805, title: '[02:36:07] Act V.iii (a) — "Birds in a cage" & Edmund’s Death Warrant',
+        stageAction: 'Lear and Cordelia embrace as captives; Edmund secretly hands a death warrant to the Captain.',
+        props: [], storm: 0.55, dead: ['fool', 'cornwall', 'oswald', 'gloucester'],
+        staging: {
+          lear:     S(0.32, 0.54, 'captive', { to: 'cordelia' }),
+          cordelia: S(0.42, 0.54, 'captive', { to: 'lear' }),
+          edmund:   S(0.62, 0.54, 'command', { to: 'lear' }),
+          doctor:   S(0.72, 0.56, 'stand', { to: 'edmund' })
+        },
+        lines: [
+          { s: 'cordelia', t: 'Shall we not see these daughters and these sisters?' },
+          { s: 'lear',     t: 'No, no, no, no! Come, let’s away to prison: we two alone will sing like birds i’ the cage: when thou dost ask me blessing, I’ll kneel down, and ask of thee forgiveness!',
+            do: { lear: { x: 0.35, p: 'embrace' }, cordelia: { x: 0.40, p: 'embrace' } }, mid: { do: { lear: null, cordelia: null }, sd: 'Father and daughter are led away to prison, arm in arm' } },
+          { s: 'edmund',   t: 'Come hither, captain; hark. Take thou this note; go follow them to prison. To be tender-minded does not become a sword.',
+            do: { edmund: { x: 0.58, p: 'holdLetter', to: 'doctor' } }, mid: { do: { edmund: { p: 'takeHand' }, doctor: { x: 0.66, p: 'takeHand', to: 'edmund' } }, sd: 'Edmund slips the Captain the death warrant' } },
+          { s: 'albany',   t: 'Stay yet, hear reason. Edmund, I arrest thee on capital treason; and, in thine attaint, this gilded serpent!',
+            do: { doctor: null, albany: S(0.46, 0.50, 'point', { to: 'edmund' }), edmund: { p: 'defy', to: 'albany' }, goneril: S(0.80, 0.50, 'defy', { to: 'albany' }), regan: S(0.88, 0.56, 'clutchHead') },
+            sd: 'Albany unmasks Edmund and Goneril; Regan sickens — poisoned by her sister' }
+        ]
+      },
+      { start: 9805, end: 10365, title: '[02:43:25] Act V.iii (b) — The Trial by Combat: Edgar Vanquishes Edmund',
+        stageAction: 'Edgar and Edmund clash at center stage; Edmund falls mortally wounded while Goneril and Regan perish.',
+        props: [], storm: 0.75, dead: ['fool', 'cornwall', 'oswald', 'gloucester', 'regan'],
+        staging: {
+          edgar:   S(0.44, 0.54, 'duel', { to: 'edmund' }),
+          edmund:  S(0.56, 0.54, 'duel', { to: 'edgar' }),
+          albany:  S(0.26, 0.52, 'command', { to: 'edmund' }),
+          goneril: S(0.80, 0.52, 'stand', { to: 'edmund' })
+        },
+        lines: [
+          { s: 'edgar',  t: 'Draw thy sword! Behold, it is the privilege of mine honors, my oath, and my profession: I protest, Maugre thy strength, youth, place, and eminence, despite thy victor sword, thou art a traitor!',
+            sd: 'An unknown knight answers the trumpet’s third call', mid: { do: { edmund: { x: 0.58, y: 0.58, p: 'fallen' }, edgar: { x: 0.48, p: 'point', to: 'edmund' }, goneril: { p: 'plead', to: 'edmund' } }, fx: ['blood:edmund', 'thunder'], sd: 'Edmund falls under his brother’s sword' } },
+          { s: 'edgar',  t: 'My name is Edgar, and thy father’s son. The gods are just, and of our pleasant vices make instruments to plague us!',
+            do: { edgar: { p: 'gesture' }, goneril: null }, sd: 'The knight lifts his visor: it is Edgar. Goneril flees' },
+          { s: 'edmund', t: 'Thou’st spoken right, ’tis true; the wheel is come full circle: I am here.',
+            do: { goneril: S(0.80, 0.64, 'fallen'), regan: S(0.88, 0.66, 'fallen'), edgar: { p: 'kneel', to: 'edmund' } }, sd: 'The bodies of Goneril and Regan are carried in' },
+          { s: 'edmund', t: 'I pant for life: some good I mean to do, despite of mine own nature. Quickly send—be brief in it—to the castle! For my writ is on the life of Lear and on Cordelia!',
+            do: { albany: { p: 'point', face: 'L' }, kent: S(0.18, 0.56, 'plead', { to: 'albany' }), edgar: { p: 'stand', face: null } }, sd: 'Too late, Edmund confesses — runners are sent to the prison' }
+        ]
+      },
+      { start: 10365, end: 10873, title: '[02:52:47] Act V.iii (c) — Finale: Lear Carries Cordelia ("Howl, howl, howl!" / "Never, never, never")',
+        stageAction: 'Lear enters carrying lifeless Cordelia, kneels beside her, and dies of a broken heart.',
+        props: [], storm: 0.65, dead: ['fool', 'cornwall', 'oswald', 'gloucester', 'regan', 'goneril', 'edmund', 'cordelia'],
+        staging: {
+          lear:     S(0.48, 0.54, 'carry'),
+          cordelia: S(0.48, 0.54, 'carried'),
+          kent:     S(0.30, 0.56, 'stand', { to: 'lear' }),
+          edgar:    S(0.68, 0.56, 'stand', { to: 'lear' }),
+          albany:   S(0.20, 0.54, 'stand', { to: 'lear' }),
+          goneril:  S(0.84, 0.64, 'fallen'),
+          regan:    S(0.92, 0.66, 'fallen')
+        },
+        lines: [
+          { s: 'lear',  t: 'Howl, howl, howl! O, you are men of stones: had I your tongues and eyes, I’d use them so that heaven’s vault should crack! She’s gone for ever!',
+            do: { lear: { p: 'howl' } }, fx: ['thunder'], sd: 'Lear enters with Cordelia dead in his arms',
+            mid: { do: { lear: { x: 0.46, p: 'kneel', to: 'cordelia' }, cordelia: { x: 0.53, y: 0.58, p: 'fallen' } }, sd: 'He lays her down on the earth' } },
+          { s: 'lear',  t: 'Cordelia, Cordelia! stay a little. Ha! What is’t thou say’st? Her voice was ever soft, gentle, and low, an excellent thing in woman.',
+            do: { lear: { p: 'feather', to: 'cordelia' } }, sd: 'He holds a feather to her lips, searching for breath' },
+          { s: 'lear',  t: 'And my poor fool is hang’d! No, no, no life! Why should a dog, a horse, a rat, have life, and thou no breath at all? Thou’lt come no more, never, never, never, never, never!',
+            do: { lear: { p: 'kneelGrief' } } },
+          { s: 'lear',  t: 'Pray you, undo this button: thank you, sir. Do you see this? Look on her, look, her lips, look there, look there!',
+            do: { lear: { p: 'kneelPoint', to: 'cordelia' }, kent: { x: 0.38, p: 'kneel', to: 'lear' } }, mid: { do: { lear: { p: 'fallen' } }, sd: 'Lear dies, still looking at her lips' } },
+          { s: 'kent',  t: 'Break, heart; I prithee, break! Vex not his ghost: O, let him pass! he hates him that would upon the rack of this tough world stretch him out longer.',
+            do: { kent: { p: 'pray' }, edgar: { x: 0.60, p: 'plead' } } },
+          { s: 'edgar', t: 'The weight of this sad time we must obey; speak what we feel, not what we ought to say. The oldest hath borne most: we that are young shall never see so much, nor live so long.',
+            do: { edgar: { p: 'bow' }, albany: { x: 0.26, p: 'bow' } }, sd: 'The survivors bow their heads. Exeunt, with a dead march' }
+        ]
+      }
+    ];
+
+    // --- Battle extras: soldiers clashing in the background
+    function battleStaging(T) {
+      const st = {};
+      const pairs = [[0.10, 0.18, 0.40], [0.44, 0.52, 0.38], [0.84, 0.92, 0.41]];
+      pairs.forEach((pr, i) => {
+        st['sol' + i] = { x: pr[0], y: pr[2], p: 'duel', to: 'sol' + (i + 3) };
+        st['sol' + (i + 3)] = { x: pr[1], y: pr[2], p: (Math.sin(T * 0.13 + i * 2) > 0.8 ? 'fallen' : 'duel'), to: 'sol' + i };
+      });
+      return st;
+    }
+
+    // --- Precompute line timings, effect events and persistent states
+    const FX_TIME = {};
+    SCENES.forEach((sc) => {
+      const dur = sc.end - sc.start;
+      const lead = Math.min(4, dur * 0.05);
+      const weights = sc.lines.map(l => 30 + l.t.length + (l.mid ? 25 : 0));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let acc = 0;
+      sc.events = [];
+      sc.lines.forEach((l, i) => {
+        l.start = sc.start + lead + (dur - lead) * (acc / total);
+        acc += weights[i];
+        l.end = sc.start + lead + (dur - lead) * (acc / total);
+        l.midAt = l.start + (l.end - l.start) * 0.55;
+        if (l.fx) sc.events.push({ time: l.start + 0.3, fx: l.fx });
+        if (l.mid && l.mid.fx) sc.events.push({ time: l.midAt, fx: l.mid.fx });
+      });
+      sc.events.forEach(ev => ev.fx.forEach(f => { if (FX_TIME[f] === undefined) FX_TIME[f] = ev.time; }));
+    });
+
+    SCENES.forEach((sc) => {
+      const opt = document.createElement('option');
+      opt.value = sc.start;
+      opt.textContent = sc.title;
+      sceneSelector.appendChild(opt);
+    });
+
+    function getSceneIndex(sec) {
+      for (let i = 0; i < SCENES.length; i++) if (sec >= SCENES[i].start && sec < SCENES[i].end) return i;
+      return SCENES.length - 1;
+    }
+
+    // Resolve the blocking at time T: base staging + every beat that has happened so far
+    function resolveState(sc, T) {
+      const st = {};
+      for (const k in sc.staging) st[k] = Object.assign({}, sc.staging[k]);
+      let lineIdx = -1, sd = null;
+      const apply = (d) => {
+        for (const id in d) {
+          if (d[id] === null) delete st[id];
+          else st[id] = Object.assign({}, st[id] || {}, d[id]);
+        }
+      };
+      sc.lines.forEach((l, i) => {
+        if (T >= l.start) {
+          lineIdx = i;
+          if (l.do) apply(l.do);
+          if (l.sd) sd = l.sd;
+          if (l.mid && T >= l.midAt) {
+            if (l.mid.do) apply(l.mid.do);
+            if (l.mid.sd) sd = l.mid.sd;
+          }
+        }
+      });
+      if (sc.battle) Object.assign(st, battleStaging(T));
+      return { st, lineIdx, sd };
+    }
+
+    // =====================================================================
+    //  DRAWING PRIMITIVES
+    // =====================================================================
+    const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+
+    function drawBrushStroke(c, x1, y1, x2, y2, w1, w2, rgb, alpha = 0.9) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      c.fillStyle = rgba(rgb, alpha);
+      c.beginPath();
+      c.moveTo(x1 + nx * w1 * 0.5, y1 + ny * w1 * 0.5);
+      c.quadraticCurveTo((x1 + x2) * 0.5 + nx * (w1 + w2) * 0.35, (y1 + y2) * 0.5 + ny * (w1 + w2) * 0.35, x2 + nx * w2 * 0.5, y2 + ny * w2 * 0.5);
+      c.lineTo(x2 - nx * w2 * 0.5, y2 - ny * w2 * 0.5);
+      c.quadraticCurveTo((x1 + x2) * 0.5 - nx * (w1 + w2) * 0.35, (y1 + y2) * 0.5 - ny * (w1 + w2) * 0.35, x1 - nx * w1 * 0.5, y1 - ny * w1 * 0.5);
+      c.closePath();
+      c.fill();
+    }
+    const stroke = (c, a, b, w1, w2, rgb, al) => drawBrushStroke(c, a.x, a.y, b.x, b.y, w1, w2, rgb, al);
+
+    function drawInkWash(c, x, y, r, rgb, alpha = 0.5) {
+      if (!(r > 1)) return;
+      const g = c.createRadialGradient(x, y, r * 0.1, x, y, r);
+      g.addColorStop(0, rgba(rgb, alpha));
+      g.addColorStop(0.65, rgba(rgb, alpha * 0.45));
+      g.addColorStop(1, rgba(rgb, 0));
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(x, y, r, 0, TAU);
+      c.fill();
+    }
+    function dot(c, x, y, r, rgb, a) { c.fillStyle = rgba(rgb, a); c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
+
+    class SpatterParticle {
+      constructor(x, y, vx, vy, r, rgb) { Object.assign(this, { x, y, vx, vy, r, rgb }); }
+      update(dt) {
+        const k = dt * 60;
+        this.x += this.vx * k; this.y += this.vy * k;
+        this.vy += 0.12 * k;
+        this.vx *= Math.pow(0.93, k); this.vy *= Math.pow(0.93, k);
+        this.r *= Math.pow(0.95, k);
+      }
+      draw(c) { drawInkWash(c, this.x, this.y, this.r * 1.4, this.rgb, 0.82); }
+    }
+    const spatterPool = [];
+    function burst(x, y, rgb, n, spd, size, upward) {
+      for (let i = 0; i < n; i++) {
+        const ang = upward ? -Math.PI / 2 + (Math.random() - 0.5) * 2.2 : Math.random() * TAU;
+        const v = spd * (0.3 + Math.random());
+        spatterPool.push(new SpatterParticle(x, y, Math.cos(ang) * v, Math.sin(ang) * v, size * (0.5 + Math.random()), rgb));
+      }
+      if (spatterPool.length > 400) spatterPool.splice(0, spatterPool.length - 400);
+    }
+
+    // =====================================================================
+    //  POSE LIBRARY
+    //  Angles are measured from straight down, positive = toward the way
+    //  the puppet faces. fA/fB = front upper/fore arm, bA/bB = back arm,
+    //  fT/fS & bT/bS = thighs/shins. ik = hands reaching for targets.
+    // =====================================================================
+    const LEGS = {
+      stand:     { fT: 0.06, fS: 0.02, bT: -0.07, bS: -0.1 },
+      wide:      { fT: 0.36, fS: 0.2,  bT: -0.32, bS: -0.4 },
+      lunge:     { fT: 0.62, fS: 0.15, bT: -0.5,  bS: -0.72 },
+      bent:      { fT: 0.3,  fS: -0.12, bT: 0.02, bS: -0.32 },
+      crouch:    { fT: 1.15, fS: -0.35, bT: 0.75, bS: -0.85 },
+      kneel:     { fT: 1.45, fS: 0.05, bT: 0.1,  bS: -1.5 },
+      sit:       { fT: 1.5,  fS: 0.02, bT: 1.42, bS: -0.06 },
+      sitGround: { fT: 1.35, fS: 1.42, bT: 2.2,  bS: 0.3 }
+    };
+    const sn = Math.sin, cs = Math.cos;
+    function P(legs, o) {
+      return Object.assign({ lean: 0.03, head: 0, fall: 0, bob: 0, sway: 0, fA: 0.12, fB: 0.2, bA: -0.1, bB: 0 }, LEGS[legs] || LEGS.stand, o);
+    }
+    const POSES = {
+      stand:      (t, p) => P('stand', { bob: sn(t * 1.7 + p) * 0.5, head: sn(t * 0.6 + p) * 0.05, free: 1 }),
+      converse:   (t, p) => P('stand', { fA: 0.45, fB: 1.2 + sn(t * 1.3 + p) * 0.15, bA: -0.05, bB: 0.15, head: sn(t * 0.9 + p) * 0.05, free: 1 }),
+      gesture:    (t, p) => P('stand', { fA: 0.9 + sn(t * 2 + p) * 0.25, fB: 1.6 + sn(t * 2 + p + 0.7) * 0.4, bA: 0.3, bB: 0.7, lean: 0.06, free: 1 }),
+      bow:        (t, p) => P('bent', { lean: 0.75, head: 0.35, fA: 0.6, fB: 0.9, bA: -0.5, bB: -0.4 }),
+      command:    (t, p) => P('wide', { lean: -0.06, head: -0.12, fA: 1.55, fB: 1.7, bA: -0.35, bB: 0.9, free: 1 }),
+      point:      (t, p) => P('wide', { lean: 0.12, fA: 1.7, fB: 1.72, bA: -0.2, bB: 0.1, free: 1 }),
+      skyPoint:   (t, p) => P('stand', { lean: -0.1, head: -0.45, fA: 2.45, fB: 2.55, bA: 0.2, bB: 0.5 }),
+      defy:       (t, p) => P('wide', { lean: -0.12, head: -0.22, fA: 0.35, fB: 1.65, bA: 0.3, bB: 1.55 }),
+      plead:      (t, p) => P('bent', { lean: 0.28, head: -0.3, fA: 1.25 + sn(t * 2.2 + p) * 0.12, fB: 2.0, bA: 1.05, bB: 1.85 }),
+      beg:        (t, p) => P('kneel', { lean: 0.15, head: -0.4, fA: 1.35, fB: 2.1, bA: 1.15, bB: 2.0, grounded: 1 }),
+      rage:       (t, p) => P('wide', { lean: 0.15, head: -0.2, fA: 2.5 + sn(t * 9 + p) * 0.25, fB: 2.9 + sn(t * 11) * 0.2, bA: 2.1 + cs(t * 8) * 0.25, bB: 2.7, sway: sn(t * 23) * 0.8, spit: 1 }),
+      skyRage:    (t, p) => P('wide', { lean: -0.22, head: -0.55, fA: 2.75 + sn(t * 3) * 0.2, fB: 3.0, bA: 2.55 + cs(t * 3.3) * 0.2, bB: 2.95, sway: sn(t * 17) * 0.6, spit: 1 }),
+      turnAway:   (t, p) => P('stand', { lean: 0.06, head: 0.25, fA: -0.15, fB: -0.05, bA: -0.35, bB: -0.7, away: 1 }),
+      embrace:    (t, p) => P('stand', { lean: 0.12, fA: 1.25, fB: 1.95, bA: 1.1, bB: 1.9, ik: { f: 'body:to', b: 'body:to' } }),
+      takeHand:   (t, p) => P('stand', { lean: 0.08, fA: 1.0, fB: 1.2, bA: -0.1, bB: 0.1, ik: { f: 'hand:to' } }),
+      holdLetter: (t, p) => P('stand', { head: -0.25, fA: 2.3, fB: 2.8, bA: 0.1, bB: 0.3, prop: 'letter' }),
+      hideLetter: (t, p) => P('stand', { fA: 0.3, fB: 0.6, bA: -0.45, bB: -0.7, prop: 'letterBack', free: 1 }),
+      readLetter: (t, p) => P('stand', { lean: 0.06, head: 0.28, fA: 0.85, fB: 2.3, bA: 0.75, bB: 2.25, prop: 'letter' }),
+      dance:      (t, p) => { const d = sn(t * 5 + p); return P('stand', { bob: -Math.abs(d) * 7, fA: 2.2 + d * 0.6, fB: 2.8, bA: 1.8 - d * 0.6, bB: 2.4, fT: 0.1 + 0.4 * d, fS: d * 0.2 - 0.2, bT: -0.3 * d, bS: -0.25, lean: 0.15 * sn(t * 2.5 + p), head: 0.2 * d, skip: 1 }); },
+      strike:     (t, p) => { const c = (t * 1.6 + p) % 1; const s = c < 0.25 ? c / 0.25 : 1 - (c - 0.25) / 0.75; return P('lunge', { lean: 0.25, fA: 0.8 + 1.9 * (1 - s), fB: 1.0 + 2.0 * (1 - s), bA: -0.6, bB: -0.2, prop: 'sword', spit: 1, hit: s > 0.95 }); },
+      cower:      (t, p) => P('crouch', { lean: 0.55, head: 0.35, fA: 1.9, fB: 3.05, bA: 1.7, bB: 2.95, sway: sn(t * 30) * 0.6, grounded: 1 }),
+      fallen:     (t, p) => P('stand', { fall: 1, fA: 0.5, fB: 0.8, bA: -0.6, bB: -0.3, fT: 0.25, fS: 0.1, bT: -0.1, bS: -0.2, head: 0.3, grounded: 1 }),
+      collapse:   (t, p) => P('stand', { fall: -1, fA: 0.9, fB: 1.3, bA: 0.5, bB: 0.6, fT: 0.1, fS: -0.3, bT: -0.15, bS: -0.5, head: -0.2, grounded: 1 }),
+      sleep:      (t, p) => P('stand', { fall: 1, fA: 0.8, fB: 1.4, bA: 0.6, bB: 1.3, fT: 0.6, fS: -0.2, bT: 0.4, bS: -0.4, head: 0.2, bob: sn(t * 1.2) * 0.6, grounded: 1 }),
+      clutchHead: (t, p) => P('bent', { lean: 0.2 + sn(t * 1.4 + p) * 0.06, head: 0.25 + sn(t * 1.1 + p) * 0.15, ik: { f: 'self:head', b: 'self:head' }, sway: sn(t * 1.2 + p) * 2 }),
+      tearClothes:(t, p) => P('wide', { lean: -0.05, head: -0.3, ik: { f: 'self:chest', b: 'self:chest' }, tear: 1 }),
+      duel:       (t, p) => { const s = sn(t * 4.2 + p); return P('lunge', { lean: 0.15 + s * 0.08, fA: 1.35 + 0.55 * s, fB: 1.75 + 0.7 * s, bA: -0.9, bB: -0.1, sway: s * 5, prop: 'sword' }); },
+      stocked:    (t, p) => P('sitGround', { fT: 1.35, fS: 1.45, bT: 1.3, bS: 1.45, head: 0.35 + sn(t * 0.5 + p) * 0.08, fA: 0.35, fB: 0.7, bA: 0.25, bB: 0.6, prop: 'stocks', grounded: 1, free: 1 }),
+      sitGround:  (t, p) => P('sitGround', { lean: 0.05, head: 0.15, fA: 0.6, fB: 1.2, bA: 0.4, bB: 1.0, grounded: 1, free: 1 }),
+      sitPlead:   (t, p) => P('sitGround', { lean: 0.15, head: -0.3, fA: 1.4, fB: 1.9, bA: 1.2, bB: 1.8, grounded: 1 }),
+      shiver:     (t, p) => P('bent', { lean: 0.3, head: 0.2, fA: 0.7, fB: 2.3, bA: 0.6, bB: 2.2, sway: sn(t * 41) * 1.1 }),
+      rave:       (t, p) => P('bent', { lean: 0.2 + sn(t * 3) * 0.2, head: sn(t * 4.3) * 0.4, fA: 1.8 + sn(t * 5.1) * 0.9, fB: 2.4 + sn(t * 6.3) * 0.7, bA: 1.2 + cs(t * 4.7) * 0.9, bB: 1.8, sway: sn(t * 2.3) * 6, bob: -Math.abs(sn(t * 4.6)) * 4, spit: 1, skip: 1 }),
+      kneel:      (t, p) => P('kneel', { lean: 0.05, fA: 0.9, fB: 1.4, bA: 0.3, bB: 0.5, grounded: 1, free: 1 }),
+      pray:       (t, p) => P('kneel', { lean: 0.15, head: 0.3, fA: 1.0, fB: 2.4, bA: 0.95, bB: 2.35, grounded: 1 }),
+      kneelCurse: (t, p) => P('kneel', { lean: -0.2, head: -0.6, fA: 2.7 + sn(t * 7) * 0.15, fB: 3.0, bA: 2.5 + cs(t * 6) * 0.15, bB: 2.9, grounded: 1, spit: 1, sway: sn(t * 19) * 0.6 }),
+      kneelGrief: (t, p) => P('kneel', { lean: 0.35 + sn(t * 1.6) * 0.1, head: 0.4, ik: { f: 'self:head', b: 'self:head' }, grounded: 1, sway: sn(t * 1.6) * 2 }),
+      kneelPoint: (t, p) => P('kneel', { lean: 0.2, head: 0.2, fA: 1.4, fB: 1.5, bA: 0.6, bB: 1.0, ik: { f: 'head:to' }, grounded: 1 }),
+      feather:    (t, p) => P('kneel', { lean: 0.3, head: 0.45, fA: 1.2, fB: 1.5, bA: 0.5, bB: 0.9, ik: { f: 'head:to' }, prop: 'feather', grounded: 1 }),
+      kneelEmbrace:(t, p) => P('kneel', { lean: 0.15, fA: 1.2, fB: 1.9, bA: 1.1, bB: 1.9, ik: { f: 'body:to', b: 'body:to' }, grounded: 1 }),
+      touchFace:  (t, p) => P('kneel', { lean: 0.15, bA: 0.4, bB: 0.8, ik: { f: 'head:to' }, grounded: 1 }),
+      holdTorch:  (t, p) => P('stand', { fA: 2.2, fB: 2.7, bA: 0.1, bB: 0.2, prop: 'torch' }),
+      boundChair: (t, p) => P('sit', { lean: -0.05 + sn(t * 6 + p) * 0.09, head: sn(t * 4.2 + p) * 0.28, fA: -0.55, fB: -0.25, bA: -0.6, bB: -0.3, prop: 'chair', grounded: 1 }),
+      sit:        (t, p) => P('sit', { lean: 0.0, head: 0.45, fA: 0.55, fB: 1.1, bA: 0.5, bB: 1.05, prop: 'chair', grounded: 1, bob: sn(t * 1.1) * 0.4 }),
+      wake:       (t, p) => P('sit', { lean: 0.05, head: -0.05 + sn(t * 0.7) * 0.1, fA: 1.1 + sn(t * 0.8) * 0.2, fB: 1.6, bA: 0.5, bB: 1.1, prop: 'chair', grounded: 1, free: 1 }),
+      blindWalk:  (t, p) => P('stand', { lean: 0.06, head: -0.22, fA: 1.35 + sn(t * 1.1 + p) * 0.2, fB: 1.45 + sn(t * 1.3 + p) * 0.25, bA: 0.35, bB: 0.15, prop: 'staff' }),
+      leadBlind:  (t, p) => P('stand', { lean: 0.06, head: -0.22, fA: 0.9, fB: 1.1, bA: 0.35, bB: 0.15, ik: { f: 'hand:to' }, prop: 'staff' }),
+      guide:      (t, p) => P('stand', { lean: 0.08, fA: 0.4, fB: 0.6, bA: -0.75, bB: -0.95, ik: { b: 'hand:to' }, free: 1, away: 1 }),
+      weedCrown:  (t, p) => P('stand', { fA: 1.9 + sn(t * 1.7) * 0.4, fB: 2.6 + sn(t * 2.1) * 0.4, bA: 0.8 + cs(t * 1.3) * 0.3, bB: 1.3, head: sn(t * 0.8) * 0.3, lean: sn(t * 0.6) * 0.1, sway: sn(t * 0.9) * 3, fT: 0.1 + sn(t * 1.7) * 0.1 }),
+      carry:      (t, p) => P('bent', { lean: -0.15, head: 0.35, fA: 1.45, fB: 1.85, bA: 1.3, bB: 1.75, sway: sn(t * 1.2) * 1.5 }),
+      howl:       (t, p) => P('bent', { lean: -0.25, head: -0.7, fA: 1.45, fB: 1.85, bA: 1.3, bB: 1.75, spit: 1, sway: sn(t * 9) * 0.6 }),
+      carried:    (t, p) => P('stand', { lean: 0, head: 1.0, fA: 1.5, fB: 1.6, bA: 1.4, bB: 1.55, fT: 0.2, fS: 1.5, bT: 0.1, bS: 1.45, grounded: 1 }),
+      strut:      (t, p) => P('stand', { lean: -0.1, head: -0.1, fA: 0.25, fB: 0.5, bA: -0.45, bB: 0.85, free: 1 }),
+      whisper:    (t, p) => P('bent', { lean: 0.22, head: 0.12, fA: 0.9, fB: 2.3, bA: 0.0, bB: 0.2 }),
+      clutchArm:  (t, p) => P('bent', { lean: 0.2, head: 0.2, fA: 0.3, fB: 0.4, ik: { b: 'self:arm' } }),
+      pluck:      (t, p) => P('stand', { lean: 0.18, fA: 1.5, fB: 1.7, bA: -0.2, bB: 0.2, ik: { f: 'head:to' }, sway: sn(t * 7) * 1.2 }),
+      gouge:      (t, p) => P('lunge', { lean: 0.3, ik: { f: 'head:to', b: 'body:to' }, spit: 1, sway: sn(t * 6) * 1 }),
+      investiture:(t, p) => P('stand', { lean: 0.05, head: -0.1, bA: -0.35, bB: 0.9, ik: { f: 'body:to' } }),
+      kiss:       (t, p) => P('stand', { lean: 0.4, head: 0.15, ik: { f: 'body:to', b: 'body:to' } }),
+      captive:    (t, p) => P('stand', { lean: 0.08, head: 0.2, fA: 0.45, fB: 0.95, bA: 0.4, bB: 0.95, prop: 'rope' })
+    };
+    const NO_WALK = new Set(['beg', 'cower', 'fallen', 'collapse', 'sleep', 'stocked', 'sitGround', 'sitPlead', 'kneel', 'pray', 'kneelCurse', 'kneelGrief', 'kneelPoint', 'feather', 'kneelEmbrace', 'touchFace', 'boundChair', 'sit', 'wake', 'carried', 'dance', 'rave']);
+    const JOINTS = ['lean', 'head', 'fall', 'bob', 'sway', 'fA', 'fB', 'bA', 'bB', 'fT', 'fS', 'bT', 'bS'];
+
+    function ik2(S, P0, l1, l2) {
+      const dx = P0.x - S.x, dy = P0.y - S.y;
+      const d = clamp(Math.hypot(dx, dy), 3, (l1 + l2) * 0.995);
+      const th = Math.atan2(dx, dy);
+      const a = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
+      const A = th - a;
+      const E = { x: S.x + sn(A) * l1, y: S.y + cs(A) * l1 };
+      const Pt = { x: S.x + sn(th) * d, y: S.y + cs(th) * d };
+      return [A, Math.atan2(Pt.x - E.x, Pt.y - E.y)];
+    }
+    function nearAngle(a, ref) { while (a - ref > Math.PI) a -= TAU; while (a - ref < -Math.PI) a += TAU; return a; }
+
+    // =====================================================================
+    //  PUPPET
+    // =====================================================================
+    let BY_ID = {};
+    let baseScale = 1;
+
+    class InkPuppet {
+      constructor(spec, idx) {
+        Object.assign(this, spec);
+        this.idx = idx;
+        this.ph = idx * 1.7;
+        const w = this.wing();
+        this.x = w.x; this.y = w.y;
+        this.face = this.homeX > 0.5 ? -1 : 1;
+        this.j = POSES.stand(0, this.ph);
+        this.ikW = { f: 0, b: 0 };
+        this.ikSpec = { f: null, b: null };
+        this.opacity = 0;
+        this.walkPh = 0; this.walkW = 0;
+        this.speed = 0; this.vx = 0;
+        this.jaw = 0;
+        this.onStage = false;
+        this.wp = null;
+        this.poseName = 'stand';
+      }
+      wing() {
+        // Exits walk right off the edge of the stage
+        if (this.extra) return { x: this.homeX, y: this.homeY };
+        return { x: this.homeX < 0.5 ? -0.09 : 1.09, y: clamp(this.homeY, 0.46, 0.64) };
+      }
+
+      update(dt, t, info) {
+        const st = info.st[this.id];
+        this.onStage = !!st;
+        this.isDead = info.dead.includes(this.id);
+        this.speaking = !!(info.line && info.line.s === this.id && st);
+        this.st = st || {};
+        let tx, ty, pose;
+        if (st) { tx = st.x; ty = st.y; pose = st.p || 'stand'; this.to = st.to || null; }
+        else { const w = this.wing(); tx = w.x; ty = w.y; pose = this.isDead ? 'fallen' : 'stand'; this.to = null; }
+        if (!POSES[pose]) pose = 'stand';
+
+        // Carried bodies ride in the carrier's arms
+        if (pose === 'carried') {
+          const carrier = PUPPETS.find(p => p.onStage && (p.poseName === 'carry' || p.poseName === 'howl'));
+          this.carrier = carrier || null;
+          if (carrier) { tx = carrier.x; ty = carrier.y + 0.002; }
+        } else this.carrier = null;
+        this.poseName = pose;
+
+        // --- Movement (walk to the mark at a human pace)
+        const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
+        if (info.snap || (!st && this.isDead) || pose === 'carried') { this.x = tx; this.y = ty; this.speed = 0; this.vx = 0; }
+        else if (d > 1e-4) {
+          const sp = Math.min(0.13, d * 3.0);
+          const step = Math.min(d, sp * dt);
+          this.x += dx / d * step; this.y += dy / d * step;
+          this.speed = d > 0.004 ? sp : 0;
+          this.vx = dx / d * this.speed;
+        } else { this.speed = 0; this.vx = 0; }
+
+        // --- Target pose
+        const tgt = POSES[pose](t, this.ph, this);
+        const talk = this.speaking ? (info.revealing ? 1 : 0.3) : 0;
+        if (talk > 0) {
+          const g1 = sn(t * 3.1 + this.ph) + 0.5 * sn(t * 7.3 + this.ph * 2);
+          const g2 = sn(t * 2.3 + this.ph + 1) + 0.4 * sn(t * 5.9);
+          if (tgt.free) { tgt.fA += 0.35 * g1 * talk; tgt.fB += 0.55 * g2 * talk; tgt.lean += 0.04 * talk; }
+          tgt.head += 0.07 * sn(t * 4.4 + this.ph) * talk;
+        }
+        // Walking
+        const walking = !NO_WALK.has(pose) && (this.speed > 0.01 || st && st.w);
+        const ww = walking ? (this.speed > 0.01 ? clamp(this.speed / 0.05, 0, 1) : 0.75) : 0;
+        this.walkW = lerp(this.walkW, ww, 1 - Math.exp(-dt * 6));
+        if (this.speed > 0.01) this.walkPh += this.speed * dt * W / (9 * baseScale * this.scale);
+        else if (st && st.w) this.walkPh += dt * 3.0;
+        if (this.walkW > 0.01) {
+          const a = this.walkPh, w = this.walkW;
+          const fT = 0.42 * sn(a), bT = -fT;
+          tgt.fT = lerp(tgt.fT, fT, w); tgt.bT = lerp(tgt.bT, bT, w);
+          tgt.fS = lerp(tgt.fS, fT - 0.5 * Math.max(0, sn(a + 1.4)), w);
+          tgt.bS = lerp(tgt.bS, bT - 0.5 * Math.max(0, sn(a + 1.4 + Math.PI)), w);
+          if (tgt.free) { tgt.fA -= 0.3 * sn(a) * w; tgt.bA += 0.3 * sn(a) * w; }
+          tgt.lean += 0.05 * w;
+        }
+        // Wind leans everyone on the heath
+        if (info.storm > 0.55 && !tgt.grounded) tgt.lean += -0.09 * info.storm * (0.6 + 0.4 * sn(t * 0.8 + this.ph)) * Math.sign(this.face || 1);
+
+        // --- Interpolate joints (this is what makes the motion fluid)
+        const kk = info.snap ? 1 : 1 - Math.exp(-dt * 7);
+        for (const key of JOINTS) {
+          const k = key === 'fall' ? (info.snap ? 1 : 1 - Math.exp(-dt * 5)) : kk;
+          this.j[key] = lerp(this.j[key], tgt[key] || 0, k);
+        }
+        this.tgt = tgt;
+        for (const arm of ['f', 'b']) {
+          const spec = tgt.ik && tgt.ik[arm];
+          if (spec) this.ikSpec[arm] = spec;
+          this.ikW[arm] = lerp(this.ikW[arm], spec ? 1 : 0, info.snap ? 1 : 1 - Math.exp(-dt * 6));
+        }
+
+        // --- Facing
+        let tf = this.face >= 0 ? 1 : -1;
+        if (!st) tf = this.x < 0.5 ? 1 : -1;
+        else if (st.face) tf = st.face === 'L' ? -1 : 1;
+        else {
+          let id = this.to;
+          if (!id && this.speaking) id = info.partner;
+          if (!id && info.line && info.line.s !== this.id) id = info.line.s;
+          let o = id && BY_ID[id];
+          if (!o || !o.onStage || o === this) {
+            o = null; let best = 9;
+            for (const p of PUPPETS) if (p !== this && p.onStage && !p.extra) { const dd = Math.abs(p.x - this.x); if (dd < best) { best = dd; o = p; } }
+          }
+          if (o && Math.abs(o.x - this.x) > 0.004) tf = Math.sign(o.x - this.x);
+          if (tgt.away) tf = -tf;
+        }
+        if (this.speed > 0.03 && Math.abs(this.vx) > 0.02 && !(st && st.face)) tf = Math.sign(this.vx);
+        if (this.carrier) tf = this.carrier.face >= 0 ? 1 : -1;
+        this.face = info.snap ? tf : lerp(this.face, tf, 1 - Math.exp(-dt * 6));
+
+        // --- Visibility
+        let ta = st ? 1 : (this.isDead ? 0 : 1);
+        if (this.extra) ta = st ? 0.42 : 0;
+        this.opacity = info.snap ? ta : lerp(this.opacity, ta, 1 - Math.exp(-dt * 4));
+
+        // --- Mouth
+        if (this.speaking && info.revealing) this.jaw = Math.abs(sn(t * 13 + this.idx)) * 1.2 * (0.6 + 0.4 * sn(t * 3.7));
+        else this.jaw *= Math.pow(0.02, dt);
+      }
+
+      // Local (facing-space) skeleton
+      skeleton() {
+        const j = this.j;
+        const T = 16, Sh = 16, U = 14, F = 13;
+        const fK = { x: sn(j.fT) * T, y: cs(j.fT) * T };
+        const fF = { x: fK.x + sn(j.fS) * Sh, y: fK.y + cs(j.fS) * Sh };
+        const bK = { x: sn(j.bT) * T, y: cs(j.bT) * T };
+        const bF = { x: bK.x + sn(j.bS) * Sh, y: bK.y + cs(j.bS) * Sh };
+        const ground = this.poseName === 'carried' ? 0 : Math.max(fF.y, bF.y, fK.y, bK.y);
+        const ox = j.sway, oy = -ground + j.bob;
+        const sh = (p) => ({ x: p.x + ox, y: p.y + oy });
+        const L = { hip: sh({ x: 0, y: 0 }), fK: sh(fK), fF: sh(fF), bK: sh(bK), bF: sh(bF) };
+        L.S = { x: L.hip.x + sn(j.lean) * 30, y: L.hip.y - cs(j.lean) * 30 };
+        L.H = { x: L.S.x + sn(j.lean + j.head) * 13, y: L.S.y - cs(j.lean + j.head) * 13 };
+        L.fSh = { x: L.S.x + 1.5, y: L.S.y + 1.5 };
+        L.bSh = { x: L.S.x - 1.5, y: L.S.y + 1.5 };
+        // Arms with IK blending
+        for (const arm of ['f', 'b']) {
+          const shp = arm === 'f' ? L.fSh : L.bSh;
+          let A = j[arm + 'A'], B = j[arm + 'B'];
+          if (this.ikW[arm] > 0.01) {
+            const tp = this.resolveTarget(this.ikSpec[arm], arm, L);
+            if (tp) {
+              const r = ik2(shp, tp, U, F);
+              const ia = nearAngle(r[0], A), ib = nearAngle(r[1], B);
+              A = lerp(A, ia, this.ikW[arm]); B = lerp(B, ib, this.ikW[arm]);
+            }
+          }
+          const E = { x: shp.x + sn(A) * U, y: shp.y + cs(A) * U };
+          const Hn = { x: E.x + sn(B) * F, y: E.y + cs(B) * F };
+          L[arm + 'E'] = E; L[arm + 'Hn'] = Hn; L[arm + 'Bang'] = B;
+        }
+        return L;
+      }
+
+      fd() { const f = this.face; return (f >= 0 ? 1 : -1) * Math.max(0.15, Math.abs(f)); }
+      sc() { return baseScale * this.scale * (0.78 + 0.44 * this.y); }
+      fallAngle() { return -this.j.fall * 1.5; }
+
+      toWorld(p) {
+        const s = this.sc(), f = this.fd();
+        let x = p.x, y = p.y;
+        const a = this.fallAngle();
+        if (Math.abs(a) > 0.001) {
+          const px = 0, py = -4, rx = x - px, ry = y - py;
+          x = px + rx * cs(a) - ry * sn(a);
+          y = py + rx * sn(a) + ry * cs(a);
+          y -= Math.abs(this.j.fall) * 6;
+        }
+        return { x: this.ox + x * f * s, y: this.oy + y * s };
+      }
+      toLocal(w) {
+        const s = this.sc(), f = this.fd();
+        const ff = Math.sign(f) * Math.max(0.3, Math.abs(f));
+        return { x: (w.x - this.ox) / (ff * s), y: (w.y - this.oy) / s };
+      }
+
+      resolveTarget(spec, arm, L) {
+        if (!spec) return null;
+        const t = performance.now() / 1000;
+        if (spec === 'self:head') return { x: L.H.x + (arm === 'f' ? 4 : -5), y: L.H.y + 2 };
+        if (spec === 'self:chest') { const o = Math.abs(sn(t * 5 + this.ph)) * 7; return { x: L.S.x + 6 + (arm === 'f' ? o : -o * 0.5), y: L.S.y + 8 }; }
+        if (spec === 'self:arm') return { x: L.fE.x + 1, y: L.fE.y - 2 };
+        const [kind, rawId] = spec.split(':');
+        const id = rawId === 'to' ? this.to : rawId;
+        const o = id && BY_ID[id];
+        if (!o || !o.wp || !o.onStage || !this.wp) return null;
+        let w;
+        if (kind === 'hand') w = { x: (this.wp.S.x + o.wp.S.x) / 2, y: (this.wp.S.y + o.wp.S.y) / 2 + 16 * this.sc() };
+        else if (kind === 'body') { const side = Math.sign(this.ox - o.ox) || 1; w = { x: o.wp.S.x + side * 4 * o.sc(), y: o.wp.S.y + (arm === 'f' ? 6 : 12) * o.sc() }; }
+        else if (kind === 'head') w = { x: o.wp.H.x, y: o.wp.H.y + 2 * o.sc() };
+        else return null;
+        return this.toLocal(w);
+      }
+
+      draw(c, t, T) {
+        const s = this.sc();
+        const alpha = this.opacity;
+        if (alpha < 0.01) return;
+        this.ox = this.x * W;
+        this.oy = this.y * H + 30 * baseScale;
+        if (this.carrier && this.carrier.wp) {
+          const hp = this.carrier.wp.fHn;
+          this.ox = hp.x; this.oy = hp.y;
+        }
+        const L = this.skeleton();
+        const f = this.fd();
+        const rgb = this.rgb;
+        const j = this.j;
+
+        // Ground shadow
+        if (!this.carrier) {
+          c.save(); c.translate(this.ox, this.oy); c.scale(1, 0.32);
+          drawInkWash(c, 0, 0, (22 + Math.abs(j.fall) * 20) * s, rgb, alpha * 0.28);
+          c.restore();
+        }
+
+        c.save();
+        c.translate(this.ox, this.oy);
+        c.scale(f * s, s);
+        if (this.carrier) { c.rotate(1.5); }
+        else {
+          const a = this.fallAngle();
+          if (Math.abs(a) > 0.001) { c.translate(0, -Math.abs(j.fall) * 6); c.translate(0, -4); c.rotate(a); c.translate(0, 4); }
+        }
+
+        const props = this.tgt && this.tgt.prop;
+        const tom = this.id === 'edgar' && T >= (FX_TIME.tom || 3780) && T < 7420;
+        const lineW = 1;
+
+        // Chair behind sitters
+        if (props === 'chair') {
+          const wood = [48, 32, 18];
+          const sy = L.hip.y + 3;
+          drawBrushStroke(c, L.hip.x - 10, sy, L.hip.x + 10, sy, 4, 4, wood, alpha * 0.85);
+          drawBrushStroke(c, L.hip.x - 10, sy, L.hip.x - 13, sy - 34, 4, 3, wood, alpha * 0.85);
+          drawBrushStroke(c, L.hip.x - 9, sy, L.hip.x - 9, 0, 3, 2.5, wood, alpha * 0.85);
+          drawBrushStroke(c, L.hip.x + 9, sy, L.hip.x + 9, 0, 3, 2.5, wood, alpha * 0.85);
+        }
+
+        // Back arm & back leg (lighter = further away)
+        const back = alpha * 0.62;
+        stroke(c, L.bSh, L.bE, 6, 4.5, rgb, back);
+        stroke(c, L.bE, L.bHn, 4.5, 3, rgb, back);
+        dot(c, L.bHn.x, L.bHn.y, 2.6, rgb, back);
+        if (!this.gown) {
+          stroke(c, L.hip, L.bK, 8, 5.5, rgb, back);
+          stroke(c, L.bK, L.bF, 5.5, 3.5, rgb, back);
+          drawBrushStroke(c, L.bF.x - 1, L.bF.y, L.bF.x + 5, L.bF.y, 3, 2, rgb, back);
+        }
+
+        // Body
+        if (this.gown) {
+          const pts = [L.fF, L.bF, L.fK, L.bK];
+          const hx0 = Math.min(...pts.map(p => p.x)) - 7, hx1 = Math.max(...pts.map(p => p.x)) + 7;
+          const hemY = Math.max(...pts.map(p => p.y)) + 1;
+          const flutter = sn(t * 2.3 + this.ph) * 1.5;
+          c.fillStyle = rgba(rgb, alpha * 0.86);
+          c.beginPath();
+          c.moveTo(L.S.x - 7, L.S.y + 1);
+          c.quadraticCurveTo(L.hip.x - 10, L.hip.y - 6, hx0 + flutter, hemY);
+          c.quadraticCurveTo((hx0 + hx1) / 2, hemY + 3, hx1 + flutter, hemY);
+          c.quadraticCurveTo(L.hip.x + 10, L.hip.y - 6, L.S.x + 7, L.S.y + 1);
+          c.closePath();
+          c.fill();
+          // Folds
+          drawBrushStroke(c, L.hip.x + 2, L.hip.y, (L.fK.x + L.fF.x) / 2 + 2, hemY - 2, 1.5, 0.6, [241, 236, 225], alpha * 0.18);
+          drawBrushStroke(c, L.hip.x - 3, L.hip.y, (L.bK.x + L.bF.x) / 2 - 2, hemY - 2, 1.5, 0.6, [241, 236, 225], alpha * 0.14);
+          stroke(c, L.hip, L.S, 15, 13, rgb, alpha * 0.92);
+        } else if (tom) {
+          stroke(c, L.hip, L.S, 11, 10, rgb, alpha * 0.7);
+          drawBrushStroke(c, L.hip.x - 6, L.hip.y - 2, L.hip.x + 6, L.hip.y + 4, 6, 4, [60, 45, 30], alpha * 0.85);
+          for (let m = 0; m < 3; m++) dot(c, L.hip.x + sn(m * 5) * 4, L.hip.y - 10 - m * 6, 2.2, [70, 55, 35], alpha * 0.6);
+        } else {
+          stroke(c, L.hip, L.S, 16, 14, rgb, alpha * 0.95);
+          drawBrushStroke(c, L.hip.x - 9, L.hip.y + 1, L.hip.x + 9, L.hip.y + 1, 4, 4, rgb, alpha * 0.95);
+          drawBrushStroke(c, L.hip.x - 1, L.hip.y - 3, L.hip.x + 1, L.hip.y + 7, 14, 9, rgb, alpha * 0.8);
+        }
+        if (this.tgt && this.tgt.tear) {
+          for (let k = 0; k < 3; k++) drawBrushStroke(c, L.S.x + 4, L.S.y + 4 + k * 5, L.S.x + 10 + sn(t * 9 + k) * 3, L.S.y + 8 + k * 5, 1.5, 0.5, [241, 236, 225], alpha * 0.5);
+        }
+
+        // Front leg
+        if (!this.gown) {
+          stroke(c, L.hip, L.fK, 8, 5.5, rgb, alpha);
+          stroke(c, L.fK, L.fF, 5.5, 3.5, rgb, alpha);
+          drawBrushStroke(c, L.fF.x - 1, L.fF.y, L.fF.x + 6, L.fF.y, 3.5, 2, rgb, alpha);
+        } else {
+          drawBrushStroke(c, L.fF.x - 1, L.fF.y, L.fF.x + 5, L.fF.y, 3, 2, rgb, alpha);
+        }
+
+        // Stocks around the ankles
+        if (props === 'stocks') {
+          const fx = (L.fF.x + L.bF.x) / 2;
+          c.fillStyle = rgba([60, 40, 22], alpha * 0.92);
+          c.fillRect(fx - 4, L.fF.y - 16, 8, 18);
+          dot(c, fx, L.fF.y - 5, 2.2, [241, 236, 225], alpha * 0.6);
+        }
+
+        // Neck & head
+        drawBrushStroke(c, L.S.x, L.S.y, L.H.x, L.H.y + 5, 6, 5, rgb, alpha);
+        drawInkWash(c, L.H.x, L.H.y, 11.5, rgb, alpha * 0.55);
+        dot(c, L.H.x, L.H.y, 8.2, rgb, alpha * 0.92);
+        const hd = j.lean + j.head;
+        const fwd = { x: cs(hd), y: sn(hd) };        // forward along the face
+        const up = { x: sn(hd), y: -cs(hd) };        // top of head
+        const hp = (a, b) => ({ x: L.H.x + fwd.x * a + up.x * b, y: L.H.y + fwd.y * a + up.y * b });
+
+        // Nose & eye
+        const nose = hp(9.5, -0.5), nose0 = hp(7, 1);
+        stroke(c, nose0, nose, 3, 1, rgb, alpha);
+        const eye = hp(4.2, 1.8);
+        const blindFull = this.id === 'gloucester' && T >= (FX_TIME.blind || 1e9);
+        const blindHalf = this.id === 'gloucester' && T >= (FX_TIME.blind1 || 1e9);
+        if (!blindHalf) dot(c, eye.x, eye.y, 1.6, [241, 236, 225], alpha * 0.92);
+        if (blindHalf) {
+          const a1 = hp(-6, 2.5), a2 = hp(9, 1.5);
+          stroke(c, blindFull ? a1 : hp(1, 2.5), a2, 4.5, 4, [130, 16, 16], alpha);
+        }
+        // Jaw
+        if (this.jaw > 0.05) {
+          const m = hp(6.5, -4 - this.jaw * 2.5);
+          dot(c, m.x, m.y, 1.4 + this.jaw * 1.2, [241, 236, 225], alpha * 0.8);
+        }
+
+        // Hair & beards
+        const crownType = this.crownFor(T);
+        if (this.fem) {
+          const h0 = hp(-3, 6), h1 = hp(-9, -14), h2 = hp(-6, -18);
+          stroke(c, h0, { x: h1.x + sn(t * 1.5 + this.ph), y: h1.y }, 7, 2, rgb, alpha * 0.9);
+          stroke(c, hp(-1, 7), { x: h2.x + sn(t * 1.3 + this.ph), y: h2.y }, 5, 1.5, rgb, alpha * 0.75);
+        }
+        if (this.beard) {
+          const bc = this.beard === 'grey' ? [128, 124, 116] : rgb;
+          const sw = sn(t * 2 + this.ph) * (1 + 2 * (BY_STORM || 0));
+          stroke(c, hp(3, -5), { ...hp(1 + sw * 0.3, -16 - this.jaw * 3) }, 8, 2, bc, alpha * 0.9);
+          stroke(c, hp(6, -5), hp(5, -13 - this.jaw * 2), 5, 1.5, bc, alpha * 0.8);
+        }
+        if (crownType === 'wild' || (this.id === 'lear' && crownType === 'weeds')) {
+          for (let h = -3; h <= 3; h++) stroke(c, hp(h * 2, 6), hp(h * 3.5 - 3 + sn(t * 3 + h) * 1.5, 13 + Math.abs(h)), 2.5, 0.8, [150, 146, 138], alpha * 0.85);
+        }
+        if (tom) {
+          for (let h = -3; h <= 3; h++) stroke(c, hp(h * 2.2, 6), hp(h * 5 + sn(t * 5 + h) * 2, 14 + (h % 2) * 4), 3, 1, rgb, alpha);
+        }
+        if (crownType === 'weeds') {
+          for (let w = -3; w <= 3; w++) {
+            stroke(c, hp(w * 2.5, 7), hp(w * 4.2, 15 + (w % 2) * 3), 2.2, 0.8, [45, 70, 32], alpha);
+            const fl = hp(w * 4.2, 15 + (w % 2) * 3);
+            dot(c, fl.x, fl.y, 1.7, w % 2 ? [150, 40, 50] : [190, 160, 40], alpha * 0.9);
+          }
+        } else if (crownType === 'king' || crownType === 'coronet') {
+          const big = crownType === 'king' ? 1 : 0.7;
+          const gold = [140, 105, 30];
+          stroke(c, hp(-7, 7), hp(7, 7), 3, 3, gold, alpha * 0.95);
+          for (const k of [-6, 0, 6]) stroke(c, hp(k, 7), hp(k * 1.15, 7 + (k === 0 ? 12 : 9) * big), 3, 1, gold, alpha * 0.95);
+        } else if (crownType === 'coxcomb') {
+          const red = [120, 24, 24];
+          const b1 = hp(-15, 8 + sn(t * 8) * 3), b2 = hp(12, 10 + cs(t * 8) * 3);
+          stroke(c, hp(-2, 7), b1, 5, 1.5, red, alpha);
+          stroke(c, hp(2, 7), b2, 5, 1.5, red, alpha);
+          dot(c, b1.x, b1.y, 2, [190, 160, 40], alpha); dot(c, b2.x, b2.y, 2, [190, 160, 40], alpha);
+        } else if (crownType === 'helm') {
+          stroke(c, hp(-8, 3), hp(8, 3), 5, 5, [60, 62, 66], alpha);
+          stroke(c, hp(0, 4), hp(-1, 11), 9, 4, [60, 62, 66], alpha);
+        } else if (!this.fem && !this.beard && !tom) {
+          stroke(c, hp(-7, 3), hp(3, 8.5), 4, 2, rgb, alpha);
+        }
+
+        // Front arm
+        stroke(c, L.fSh, L.fE, 6.5, 4.8, rgb, alpha);
+        stroke(c, L.fE, L.fHn, 4.8, 3.2, rgb, alpha);
+        dot(c, L.fHn.x, L.fHn.y, 2.8, rgb, alpha);
+
+        // Hand props
+        const fH = L.fHn, bH = L.bHn, ang = L.fBang;
+        if (props === 'sword') {
+          const cudgel = this.id === 'edgar' && T >= 3720 && T < 9805;
+          const a2 = ang + 0.35;
+          const tip = { x: fH.x + sn(a2) * (cudgel ? 22 : 32), y: fH.y + cs(a2) * (cudgel ? 22 : 32) };
+          if (cudgel) stroke(c, fH, tip, 3, 5, [70, 48, 26], alpha);
+          else {
+            stroke(c, fH, tip, 2.6, 0.8, [26, 28, 34], alpha);
+            const gx = cs(a2) * 4, gy = -sn(a2) * 4;
+            drawBrushStroke(c, fH.x - gx, fH.y - gy, fH.x + gx, fH.y + gy, 2, 2, [26, 28, 34], alpha);
+          }
+          this.swordTipLocal = tip;
+        } else this.swordTipLocal = null;
+        if (props === 'letter' || props === 'letterBack') {
+          const hh = props === 'letter' ? fH : bH;
+          c.fillStyle = rgba([248, 243, 228], alpha);
+          c.strokeStyle = rgba([17, 18, 21], alpha * 0.8);
+          c.lineWidth = 1;
+          c.fillRect(hh.x - 3, hh.y - 9, 10, 12);
+          c.strokeRect(hh.x - 3, hh.y - 9, 10, 12);
+          for (let k = 0; k < 3; k++) drawBrushStroke(c, hh.x - 1, hh.y - 6 + k * 3, hh.x + 5, hh.y - 6 + k * 3, 0.7, 0.5, [17, 18, 21], alpha * 0.6);
+        }
+        if (props === 'staff') {
+          drawBrushStroke(c, bH.x, bH.y - 8, bH.x + 7, 0, 2.5, 2, [64, 44, 24], alpha);
+        }
+        if (props === 'torch') {
+          const tip = { x: fH.x + sn(ang) * 12, y: fH.y + cs(ang) * 12 };
+          stroke(c, { x: fH.x - sn(ang) * 3, y: fH.y - cs(ang) * 3 }, tip, 3, 2.5, [64, 44, 24], alpha);
+          const fl = 1 + 0.25 * sn(t * 21 + this.ph);
+          drawInkWash(c, tip.x, tip.y - 4, 10 * fl, [210, 110, 30], alpha * 0.7);
+          drawInkWash(c, tip.x, tip.y - 5, 5 * fl, [240, 190, 70], alpha * 0.9);
+        }
+        if (props === 'feather') {
+          drawBrushStroke(c, fH.x, fH.y, fH.x + 9, fH.y - 3 + sn(t * 2) * 0.6, 2.4, 0.5, [205, 200, 190], alpha);
+        }
+        if (props === 'rope') {
+          const m = { x: (fH.x + bH.x) / 2, y: (fH.y + bH.y) / 2 };
+          drawBrushStroke(c, m.x - 4, m.y, m.x + 4, m.y + 1, 3, 3, [110, 85, 50], alpha);
+        }
+
+        c.restore();
+
+        // Cache world-space joints for others to reach toward
+        this.wp = { S: this.toWorld(L.S), H: this.toWorld(L.H), fHn: this.toWorld(L.fHn), bHn: this.toWorld(L.bHn), mouth: this.toWorld(hp(9, -3)) };
+        if (this.carrier) {
+          const cw = (p) => { const rx = p.x * f * s, ry = p.y * s; return { x: this.ox + rx * cs(1.5) - ry * sn(1.5), y: this.oy + rx * sn(1.5) + ry * cs(1.5) }; };
+          this.wp.S = cw(L.S); this.wp.H = cw(L.H);
+        }
+        this.swordTipWorld = this.swordTipLocal ? this.toWorld(this.swordTipLocal) : null;
+      }
+
+      crownFor(T) {
+        if (this.id === 'lear') {
+          if (T < 4880) return 'king';
+          if (T >= 7420 && T < 8490) return 'weeds';
+          return 'wild';
+        }
+        return this.crown;
+      }
+    }
+
+    let BY_STORM = 0;
+    const PUPPETS = CAST_SPECS.map((spec, idx) => new InkPuppet(spec, idx));
+    PUPPETS.forEach(p => BY_ID[p.id] = p);
+
+    // =====================================================================
+    //  SET PIECES
+    // =====================================================================
+    function britainPath(c, cx, cy, w, h) {
+      const pts = [[0.48,0.02],[0.58,0.1],[0.54,0.2],[0.62,0.32],[0.6,0.42],[0.7,0.55],[0.74,0.7],[0.86,0.8],[0.76,0.9],[0.5,0.94],[0.3,0.97],[0.34,0.86],[0.44,0.8],[0.38,0.7],[0.46,0.6],[0.4,0.5],[0.36,0.38],[0.42,0.28],[0.36,0.16]];
+      c.beginPath();
+      pts.forEach((p, i) => {
+        const x = cx + (p[0] - 0.5) * w, y = cy + (p[1] - 0.5) * h;
+        i ? c.lineTo(x, y) : c.moveTo(x, y);
+      });
+      c.closePath();
+    }
+
+    function drawSetPieces(c, sc, T, t) {
+      const props = sc.props || [];
+      const bs = baseScale;
+      if (props.includes('map')) {
+        const cx = W * 0.5, cy = H * 0.63, w = Math.min(260 * bs, W * 0.55), h = w * 0.34;
+        c.save();
+        c.fillStyle = 'rgba(228, 216, 190, 0.85)';
+        c.beginPath();
+        c.moveTo(cx - w * 0.42, cy - h / 2); c.lineTo(cx + w * 0.42, cy - h / 2);
+        c.lineTo(cx + w / 2, cy + h / 2); c.lineTo(cx - w / 2, cy + h / 2); c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(25, 22, 18, 0.6)'; c.lineWidth = 1.6; c.stroke();
+        // Rolled ends
+        drawBrushStroke(c, cx - w * 0.42, cy - h / 2, cx - w / 2, cy + h / 2, 6, 7, [120, 100, 70], 0.7);
+        drawBrushStroke(c, cx + w * 0.42, cy - h / 2, cx + w / 2, cy + h / 2, 6, 7, [120, 100, 70], 0.7);
+        // Britain (laid on the floor, so stretched sideways)
+        c.save(); c.translate(cx, cy); c.rotate(-Math.PI / 2); c.translate(-cx, -cy);
+        britainPath(c, cx, cy, h * 0.9, w * 0.8);
+        c.fillStyle = 'rgba(70, 90, 60, 0.28)'; c.fill();
+        c.strokeStyle = 'rgba(25, 22, 18, 0.7)'; c.lineWidth = 1.4; c.stroke();
+        c.restore();
+        if (T >= (FX_TIME.divide1 || 1e9)) drawBrushStroke(c, cx - w * 0.14, cy - h * 0.5, cx - w * 0.17, cy + h * 0.5, 3, 2, [130, 20, 20], 0.85);
+        if (T >= (FX_TIME.divide2 || 1e9)) drawBrushStroke(c, cx + w * 0.14, cy - h * 0.5, cx + w * 0.17, cy + h * 0.5, 3, 2, [130, 20, 20], 0.85);
+        c.restore();
+      }
+      if (props.includes('coronet')) {
+        const a = BY_ID.albany, b = BY_ID.cornwall;
+        let p = { x: W * 0.71, y: H * 0.42 };
+        if (a.onStage && b.onStage && a.wp && b.wp) p = { x: (a.wp.fHn.x + b.wp.fHn.x) / 2, y: (a.wp.fHn.y + b.wp.fHn.y) / 2 };
+        const r = 9 * bs;
+        c.save(); c.translate(p.x, p.y);
+        c.strokeStyle = 'rgba(150, 112, 30, 0.95)'; c.lineWidth = 3 * bs;
+        c.beginPath(); c.ellipse(0, 0, r, r * 0.45, 0, 0, TAU); c.stroke();
+        for (const k of [-1, 0, 1]) drawBrushStroke(c, k * r * 0.7, -r * 0.2, k * r * 0.8, -r * 1.1, 2.5 * bs, 0.8 * bs, [150, 112, 30], 0.95);
+        c.restore();
+      }
+      if (props.includes('hovel')) {
+        const cx = W * 0.62, cy = H * 0.56 + 30 * bs;
+        drawBrushStroke(c, cx + 60 * bs, cy, cx + 120 * bs, cy - 110 * bs, 10, 6, [35, 28, 22], 0.5);
+        drawBrushStroke(c, cx + 120 * bs, cy - 110 * bs, cx + 190 * bs, cy, 6, 10, [35, 28, 22], 0.5);
+        for (let k = 0; k < 6; k++) drawBrushStroke(c, cx + (90 + k * 10) * bs, cy - (80 - k * 4) * bs, cx + (80 + k * 12) * bs, cy - (40 - k * 3) * bs, 3, 1, [60, 50, 30], 0.35);
+      }
+      if (props.includes('stool')) {
+        const cx = W * 0.52, cy = H * 0.56 + 30 * bs;
+        const wd = [45, 32, 20];
+        drawBrushStroke(c, cx - 14 * bs, cy - 18 * bs, cx + 14 * bs, cy - 18 * bs, 6, 6, wd, 0.88);
+        drawBrushStroke(c, cx - 10 * bs, cy - 18 * bs, cx - 13 * bs, cy, 4, 3, wd, 0.88);
+        drawBrushStroke(c, cx + 10 * bs, cy - 18 * bs, cx + 13 * bs, cy, 4, 3, wd, 0.88);
+      }
+      if (props.includes('cliff')) {
+        const cy = H * 0.56 + 34 * bs, bx = W * 0.22;
+        drawBrushStroke(c, 0, cy - 4, bx, cy, 8, 12, [40, 42, 46], 0.5);
+        drawBrushStroke(c, bx, cy, bx - 10, cy + 120 * bs, 10, 4, [40, 42, 46], 0.45);
+        for (let k = 0; k < 5; k++) drawBrushStroke(c, bx * (0.2 + k * 0.18), cy + 4, bx * (0.25 + k * 0.18) - 6, cy + 60 * bs, 2, 0.5, [70, 72, 76], 0.25);
+        // Grass tufts on the flat ground where Gloucester lands
+        for (let k = 0; k < 7; k++) { const gx = W * (0.26 + k * 0.06); drawBrushStroke(c, gx, cy + 2, gx + 3 + sn(t + k) * 2, cy - 9, 2, 0.5, [50, 70, 40], 0.4); }
+      }
+    }
+
+    // =====================================================================
+    //  EFFECTS
+    // =====================================================================
+    let shake = 0, flash = 0, bolt = null;
+    function lightning() {
+      flash = 0.75; shake = Math.max(shake, 6);
+      const x0 = W * (0.15 + Math.random() * 0.7);
+      const pts = [{ x: x0, y: 0 }];
+      let y = 0, x = x0;
+      while (y < H * 0.45) { y += 20 + Math.random() * 35; x += (Math.random() - 0.5) * 60; pts.push({ x, y }); }
+      bolt = { pts, life: 0.35 };
+    }
+    function fireFx(name) {
+      const [kind, id] = name.split(':');
+      const p = id && BY_ID[id];
+      if (kind === 'thunder') lightning();
+      else if (kind === 'flash') { flash = 0.6; }
+      else if (kind === 'thud') shake = Math.max(shake, 7);
+      else if ((kind === 'blood' || kind === 'blind' || kind === 'blind1') && (p || kind !== 'blood')) {
+        const q = p || BY_ID.gloucester;
+        if (q.wp) burst(q.wp.H.x, q.wp.H.y, [130, 16, 16], 26, 5, 6 * baseScale, true);
+        shake = Math.max(shake, 8);
+      } else if (kind === 'spatter' && p && p.wp) burst(p.wp.S.x, p.wp.S.y + 20 * baseScale, p.rgb, 18, 4, 5 * baseScale, false);
+      else if (kind === 'tom') { const q = BY_ID.edgar; if (q.wp) burst(q.wp.S.x, q.wp.S.y, [70, 55, 35], 22, 4, 5, false); }
+    }
+
+    // =====================================================================
+    //  TEXT HELPERS
+    // =====================================================================
+    function wrapWords(c, words, maxW) {
+      const lines = []; let cur = '';
+      for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (c.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else cur = test;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    }
+    function rrect(c, x, y, w, h, r) {
+      c.beginPath();
+      if (c.roundRect) c.roundRect(x, y, w, h, r);
+      else c.rect(x, y, w, h);
+    }
+
+    // =====================================================================
+    //  YOUTUBE AUDIO
+    //  A plain YouTube embed controlled by postMessage, so no outside
+    //  script has to load. If YouTube never answers, explain why.
+    // =====================================================================
+    let ytFrame = null, ytReady = false, ytTime = null, ytTimeAt = 0;
+    let ytListenTimer = null, ytWatchdog = null;
+    const ytFallback = document.getElementById('ytFallback');
+    const ytFallbackMsg = document.getElementById('ytFallbackMsg');
+    const ytOpenLink = document.getElementById('ytOpenLink');
+
+    function ytSend(func, args) {
+      if (ytFrame && ytFrame.contentWindow) {
+        ytFrame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: args || [] }), '*');
+      }
+    }
+
+    function showFallback(on, html) {
+      ytFallback.classList.toggle('show', on);
+      if (on) {
+        ytFallbackMsg.innerHTML = html;
+        ytOpenLink.href = `https://www.youtube.com/watch?v=${VIDEO_ID}&t=${Math.floor(simTime)}s`;
+        ytDockHint.style.display = 'none';
+      }
+    }
+
+    const MSG_NO_LOAD = '<b>No sound — YouTube didn’t load.</b> YouTube won’t play inside the Claude app’s file preview, or in a page opened straight from a file on your phone. It needs the page opened from a web address (link) in Safari or Chrome. The play still runs silently meanwhile.';
+    const errorMsg = (code) => {
+      if (code === 101 || code === 150) return '<b>This video doesn’t allow embedding.</b> Its owner has blocked playback on other sites. Try a different recording of King Lear.';
+      if (code === 100) return '<b>Video not found.</b> It may have been removed or made private. Try a different recording.';
+      if (code === 153 || code === 152) return '<b>YouTube refused to play here (error ' + code + ').</b> It needs the page opened from a web address, not from a file or a preview.';
+      return '<b>YouTube error ' + code + '.</b> Try again, or use a different recording.';
+    };
+
+    function buildPlayer() {
+      const holder = document.getElementById('ytPlayer');
+      holder.innerHTML = '';
+      ytReady = false; ytPlaying = false; ytTime = null;
+      showFallback(false);
+      ytDockHint.style.display = 'block';
+      ytDockHint.textContent = 'Tap ▶ in the video to start the sound, then "Hide Audio Box"';
+      const hasOrigin = location.origin && location.origin !== 'null' && /^https?:/.test(location.origin);
+      const origin = hasOrigin ? '&origin=' + encodeURIComponent(location.origin) : '';
+      ytFrame = document.createElement('iframe');
+      ytFrame.src = `https://www.youtube.com/embed/${VIDEO_ID}?enablejsapi=1&playsinline=1&rel=0&controls=1&start=${Math.floor(simTime)}${origin}`;
+      ytFrame.allow = 'autoplay; encrypted-media; picture-in-picture';
+      ytFrame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      ytFrame.title = 'King Lear recording';
+      ytFrame.addEventListener('load', () => {
+        clearInterval(ytListenTimer);
+        let n = 0;
+        ytListenTimer = setInterval(() => {
+          if (ytReady || ++n > 40) { clearInterval(ytListenTimer); return; }
+          try { ytFrame.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'lear', channel: 'widget' }), '*'); } catch (e) {}
+        }, 250);
+      });
+      holder.appendChild(ytFrame);
+      clearTimeout(ytWatchdog);
+      ytWatchdog = setTimeout(() => { if (!ytReady) showFallback(true, MSG_NO_LOAD); }, 9000);
+    }
+
+    function setYtState(state) {
+      const was = ytPlaying;
+      ytPlaying = state === 1;
+      if (ytPlaying) {
+        simRunning = true;
+        ytDockHint.textContent = 'Sound playing — tap "Hide Audio Box" to tuck it away';
+      } else if (was && state === 2) {
+        simRunning = false;
+      }
+    }
+
+    window.addEventListener('message', (e) => {
+      const host = String(e.origin || '').replace(/^https?:\/\//, '');
+      if (!/(^|\.)youtube(-nocookie)?\.com$/.test(host)) return;
+      let d;
+      try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (err) { return; }
+      if (!d || !d.event) return;
+      if (!ytReady) { ytReady = true; showFallback(false); }
+      if (d.event === 'onStateChange') setYtState(d.info);
+      else if (d.event === 'onError') showFallback(true, errorMsg(d.info));
+      else if (d.event === 'infoDelivery' && d.info) {
+        if (typeof d.info.currentTime === 'number') { ytTime = d.info.currentTime; ytTimeAt = performance.now(); }
+        if (typeof d.info.playerState === 'number') setYtState(d.info.playerState);
+      }
+    });
+
+    document.getElementById('ytRetryBtn').addEventListener('click', buildPlayer);
+    document.getElementById('ytSilentBtn').addEventListener('click', () => {
+      showFallback(false);
+      ytDock.classList.add('tucked');
+      ytDockHint.style.display = 'none';
+      hideDockBtn.textContent = 'Show Audio Box';
+      simRunning = true;
+    });
+    document.getElementById('ytChangeBtn').addEventListener('click', () => {
+      const link = window.prompt('Paste a YouTube link (or video ID) for a King Lear recording:');
+      if (!link) return;
+      const m = link.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/) || link.trim().match(/^([A-Za-z0-9_-]{11})$/);
+      if (!m) { window.alert('That doesn’t look like a YouTube link.'); return; }
+      VIDEO_ID = m[1];
+      try { localStorage.setItem('learVideoId', VIDEO_ID); } catch (err) {}
+      buildPlayer();
+    });
+
+    function togglePlay() {
+      if (ytReady) {
+        if (ytPlaying) { ytSend('pauseVideo'); simRunning = false; }
+        else { ytSend('playVideo'); simRunning = true; }
+      } else simRunning = !simRunning;
+    }
+    playPauseBtn.addEventListener('click', togglePlay);
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); togglePlay(); } });
+
+    function seekTo(sec) {
+      simTime = sec;
+      timelineSlider.value = sec;
+      if (ytReady) { ytSend('seekTo', [sec, true]); ytTime = sec; ytTimeAt = performance.now(); }
+    }
+    sceneSelector.addEventListener('change', (e) => {
+      seekTo(parseInt(e.target.value, 10) + 0.5);
+      if (ytReady) ytSend('playVideo');
+    });
+    timelineSlider.addEventListener('input', (e) => {
+      isScrubbing = true;
+      simTime = parseInt(e.target.value, 10);
+      timeDisplay.textContent = `${formatTime(simTime)} / 03:01:13`;
+    });
+    timelineSlider.addEventListener('change', (e) => { isScrubbing = false; seekTo(parseInt(e.target.value, 10)); });
+
+    function formatTime(sec) {
+      const s = Math.max(0, Math.floor(sec || 0));
+      return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(v => String(v).padStart(2, '0')).join(':');
+    }
+
+    // =====================================================================
+    //  MAIN LOOP
+    // =====================================================================
+    let elapsed = 0;
+    let topBarBottom = 60;
+    const topBarEl = document.getElementById('topBar');
+    let lastWordCount = -1, lastLineKey = '';
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.1, (now - lastNow) / 1000);
+      lastNow = now;
+      elapsed += dt;
+      topBarBottom = topBarEl.getBoundingClientRect().bottom;
+      baseScale = clamp(Math.min(W / 950, H / 620), 0.72, 1.4);
+
+      // --- Clock
+      if (ytPlaying && ytTime !== null && !isScrubbing) {
+        simTime = ytTime + Math.min(2, (performance.now() - ytTimeAt) / 1000);
+      } else if (simRunning && !isScrubbing) {
+        simTime = (simTime + dt) % TOTAL;
+      }
+      if (!isScrubbing) timelineSlider.value = Math.floor(simTime);
+      timeDisplay.textContent = `${formatTime(simTime)} / 03:01:13`;
+      const T = simTime;
+      const jump = Math.abs(T - prevSimTime) > 2.5;
+
+      const si = getSceneIndex(T);
+      const sc = SCENES[si];
+      if (document.activeElement !== sceneSelector) sceneSelector.value = sc.start;
+      const { st, lineIdx, sd } = resolveState(sc, T);
+      const line = lineIdx >= 0 ? sc.lines[lineIdx] : null;
+
+      // Who is the speaker talking to?
+      let partner = null;
+      if (line) {
+        partner = line.to || null;
+        for (let k = 1; !partner && k < 4; k++) {
+          for (const n of [lineIdx - k, lineIdx + k]) {
+            const l2 = sc.lines[n];
+            if (l2 && l2.s !== line.s && st[l2.s]) { partner = l2.s; break; }
+          }
+        }
+      }
+
+      // Word-by-word reveal of the current line
+      let words = [], shown = 0, revealing = false;
+      if (line) {
+        words = line.t.split(' ');
+        shown = Math.min(words.length, Math.floor((T - line.start) * 3.2) + 1);
+        revealing = shown < words.length && simRunning;
+      }
+
+      // --- Effects triggered by the action
+      if (!jump && T > prevSimTime) {
+        for (const ev of sc.events) if (ev.time > prevSimTime && ev.time <= T) ev.fx.forEach(fireFx);
+      }
+      if (sc.storm >= 0.8 && simRunning && Math.random() < dt * 0.22 * sc.storm) lightning();
+      BY_STORM = sc.storm;
+
+      const info = { st, dead: sc.dead, line, partner, revealing, snap: jump, storm: sc.storm };
+      prevSimTime = T;
+
+      // --- Stage canvas: ink slowly dries (trails), then repaint
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = jump ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0.32)';
+      ctx.fillRect(0, 0, stageCanvas.width, stageCanvas.height);
+      ctx.restore();
+
+      shake *= Math.pow(0.02, dt);
+      const shx = (Math.random() - 0.5) * shake, shy = (Math.random() - 0.5) * shake;
+      ctx.setTransform(DPR, 0, 0, DPR, shx * DPR, shy * DPR);
+
+      drawSetPieces(ctx, sc, T, elapsed);
+
+      // Rain
+      if (sc.storm >= 0.5 && simRunning) {
+        const n = Math.floor(sc.storm * 16);
+        for (let i = 0; i < n; i++) {
+          const rx = Math.random() * W, ry = Math.random() * H;
+          drawBrushStroke(ctx, rx, ry, rx - 18 * sc.storm, ry + 42, 1.8, 0.5, [25, 30, 38], 0.32);
+        }
+      }
+      if (bolt) {
+        for (let i = 1; i < bolt.pts.length; i++) {
+          const a = bolt.pts[i - 1], b = bolt.pts[i];
+          drawBrushStroke(ctx, a.x, a.y, b.x, b.y, 5 * bolt.life / 0.35 + 1, 4 * bolt.life / 0.35 + 1, [20, 20, 30], 0.85);
+        }
+        bolt.life -= dt;
+        if (bolt.life <= 0) bolt = null;
+      }
+
+      // --- Puppets
+      for (const p of PUPPETS) p.update(dt, elapsed, info);
+      const order = PUPPETS.slice().sort((a, b) => {
+        const ka = (a.onStage ? 1 : 0) * 10 + a.y + (a.carrier ? 0.5 : 0);
+        const kb = (b.onStage ? 1 : 0) * 10 + b.y + (b.carrier ? 0.5 : 0);
+        return ka - kb;
+      });
+      for (const p of order) p.draw(ctx, elapsed, T);
+
+      // Sword clashes between duellists
+      for (const p of PUPPETS) {
+        if (!p.onStage || !p.swordTipWorld || !p.to) continue;
+        const o = BY_ID[p.to];
+        if (o && o.onStage && o.swordTipWorld && p.idx < o.idx && Math.random() < dt * 2.2) {
+          const mx = (p.swordTipWorld.x + o.swordTipWorld.x) / 2, my = (p.swordTipWorld.y + o.swordTipWorld.y) / 2;
+          burst(mx, my, [20, 22, 28], 6, 3.5, 2.5 * baseScale, true);
+          if (!p.extra) shake = Math.max(shake, 2.5);
+        }
+      }
+
+      // Speech: spit ink on emphatic words
+      const speaker = line && BY_ID[line.s];
+      const key = si + ':' + lineIdx;
+      if (key !== lastLineKey) { lastLineKey = key; lastWordCount = shown; }
+      if (speaker && speaker.onStage && speaker.wp && shown > lastWordCount) {
+        const w = words[shown - 1] || '';
+        const emph = /[!?]/.test(w) ? 1 : 0;
+        const fury = speaker.tgt && speaker.tgt.spit ? 1 : 0;
+        if (emph || (fury && Math.random() < 0.5) || Math.random() < 0.08) {
+          burst(speaker.wp.mouth.x, speaker.wp.mouth.y, speaker.rgb, 2 + emph * 4 + fury * 2, 3 + emph * 2, 3 * baseScale, true);
+        }
+        lastWordCount = shown;
+      }
+
+      for (let i = spatterPool.length - 1; i >= 0; i--) {
+        const sp = spatterPool[i];
+        sp.update(dt); sp.draw(ctx);
+        if (sp.r < 0.6) spatterPool.splice(i, 1);
+      }
+
+      // --- UI canvas: names, speech scrolls, lightning flash
+      uiCtx.clearRect(0, 0, W, H);
+      if (flash > 0.01) { uiCtx.fillStyle = `rgba(250, 248, 240, ${flash})`; uiCtx.fillRect(0, 0, W, H); flash *= Math.pow(0.002, dt); }
+
+      for (const p of PUPPETS) {
+        if (p.extra || nameMode === 0 || !p.onStage || p.opacity < 0.05 || p.carrier) continue;
+        uiCtx.save();
+        uiCtx.textAlign = 'center';
+        const isSp = speaker === p;
+        uiCtx.font = isSp ? 'bold 13px Georgia, serif' : '11.5px Georgia, serif';
+        uiCtx.fillStyle = isSp ? 'rgba(110, 20, 20, 0.98)' : `rgba(17, 18, 21, ${p.onStage ? 0.8 : 0.35})`;
+        uiCtx.fillText(p.name, p.ox, p.oy + 17);
+        uiCtx.restore();
+      }
+
+      if (textOn && speaker && speaker.onStage && speaker.wp) {
+        uiCtx.save();
+        uiCtx.font = 'italic 13px Georgia, serif';
+        const maxW = Math.min(320, W * 0.72);
+        let lines = wrapWords(uiCtx, words.slice(0, shown), maxW - 24);
+        if (lines.length > 3) lines = lines.slice(lines.length - 3);
+        const tw = Math.min(maxW, Math.max(...lines.map(l => uiCtx.measureText(l).width)) + 24);
+        const lh = 17, bh = lines.length * lh + 12;
+        const hx = speaker.wp.H.x, hy = speaker.wp.H.y - 20 * speaker.sc();
+        const bx = clamp(hx, tw / 2 + 8, W - tw / 2 - 8);
+        const by = Math.max(topBarBottom + 8, hy - bh - 10);
+        uiCtx.fillStyle = 'rgba(241, 236, 225, 0.95)';
+        uiCtx.strokeStyle = 'rgba(17, 18, 21, 0.75)';
+        uiCtx.lineWidth = 1.2;
+        rrect(uiCtx, bx - tw / 2, by, tw, bh, 5);
+        uiCtx.fill(); uiCtx.stroke();
+        // Tail toward the speaker's mouth
+        uiCtx.beginPath();
+        uiCtx.moveTo(clamp(hx, bx - tw / 2 + 12, bx + tw / 2 - 12) - 6, by + bh);
+        uiCtx.lineTo(hx, Math.min(hy, by + bh + 16));
+        uiCtx.lineTo(clamp(hx, bx - tw / 2 + 12, bx + tw / 2 - 12) + 6, by + bh);
+        uiCtx.closePath();
+        uiCtx.fillStyle = 'rgba(241, 236, 225, 0.95)';
+        uiCtx.fill(); uiCtx.stroke();
+        uiCtx.fillStyle = '#111215';
+        uiCtx.textAlign = 'center';
+        lines.forEach((l, i) => uiCtx.fillText(l, bx, by + 18 + i * lh));
+        uiCtx.restore();
+      }
+
+      // --- Banner
+      sceneHeaderEl.textContent = sc.title;
+      dialogueLineEl.textContent = line ? `${(BY_ID[line.s] ? BY_ID[line.s].name : line.s).toUpperCase()}: "${line.t}"` : '';
+      stageDirectionEl.textContent = `[${sd || sc.stageAction}]`;
+    }
+
+    buildPlayer();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
