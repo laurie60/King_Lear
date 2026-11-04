@@ -3,174 +3,339 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>King Lear — Sumi-e Ink Puppet Theatre</title>
+  <title>King Lear Ink Theatre</title>
+  <meta name="description" content="Shakespeare's King Lear performed by ink figures in water, alongside a full recording of the play.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
   <style>
+    /* Layout: full-bleed paper stage, slim header above, transport and caption below */
     :root {
-      --paper: #f1ece1;
-      --ink: #111215;
-      --crimson: #6e1414;
+      --paper: #efe8da;
+      --paper-2: #e6dcc8;
+      --ink: #15141a;
+      --ink-soft: rgba(21, 20, 26, 0.72);
+      --muted: #5b5045;
+      --crimson: #7a1c1c;
+      --gold: #a8822e;
+      --line: rgba(21, 20, 26, 0.22);
+      --display: "IM Fell English", "Iowan Old Style", Georgia, serif;
+      --body: "EB Garamond", "Iowan Old Style", Georgia, serif;
+      --hdr: 56px;
+      --tp: 64px;
+      color-scheme: light;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html {
-      width: 100vw;
-      height: 100vh;
+    html, body {
+      width: 100%; height: 100%;
       overflow: hidden;
-      background-color: var(--paper);
-      font-family: "Georgia", serif;
+      background: var(--paper);
+      font-family: var(--body);
       color: var(--ink);
-      user-select: none;
-      -webkit-user-select: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
+    button, select, a { font-family: var(--body); }
+    :focus-visible { outline: 2px solid var(--crimson); outline-offset: 2px; }
 
-    /* Inline YouTube audio mini-dock (inline so iOS/iPadOS doesn't hijack to fullscreen) */
+    #parchmentShield {
+      position: fixed; inset: 0; z-index: 5;
+      background-color: var(--paper);
+      background-image:
+        radial-gradient(rgba(21, 20, 26, 0.035) 1px, transparent 0),
+        radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(120, 100, 75, 0.38) 100%);
+      background-size: 18px 18px, 100% 100%;
+    }
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    #bgCanvas { z-index: 8; mix-blend-mode: multiply; }
+    #stageCanvas { z-index: 10; mix-blend-mode: multiply; }
+    #lightCanvas { z-index: 12; mix-blend-mode: screen; pointer-events: none; }
+    #uiCanvas { z-index: 15; pointer-events: none; }
+
+    /* ---------- Header ---------- */
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: calc(8px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+      background: linear-gradient(to bottom, rgba(239, 232, 218, 0.97) 70%, rgba(239, 232, 218, 0.8));
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex: 1 1 260px; }
+    .brand h1 { font-family: var(--display); font-weight: 400; font-size: 25px; letter-spacing: 0.01em; white-space: nowrap; line-height: 1; }
+    .brand h1 em { color: var(--crimson); font-style: italic; }
+    #nowLabel { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tbtn, select#sceneSelector {
+      font-size: 14px; color: var(--ink); background: rgba(255, 255, 255, 0.25);
+      border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tbtn:hover, select#sceneSelector:hover { border-color: var(--ink-soft); }
+    .tbtn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    select#sceneSelector { max-width: min(46vw, 330px); appearance: none; -webkit-appearance: none; padding-right: 28px;
+      background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+      background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+
+    /* ---------- Transport ---------- */
+    #transport {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+      background: linear-gradient(to top, rgba(239, 232, 218, 0.97) 65%, rgba(239, 232, 218, 0));
+    }
+    #playPauseBtn {
+      flex: none; width: 44px; height: 44px; border-radius: 50%;
+      border: none; background: var(--ink); color: var(--paper); cursor: pointer;
+      display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+    #playPauseBtn svg { width: 18px; height: 18px; fill: currentColor; }
+    #playPauseBtn .ic-play { display: none; margin-left: 3px; }
+    #playPauseBtn.paused .ic-play { display: block; }
+    #playPauseBtn.paused .ic-pause { display: none; }
+    #tlWrap { flex: 1; min-width: 0; position: relative; height: 34px; }
+    #tlActs { position: absolute; left: 0; right: 0; top: 0; height: 12px; font-family: var(--display); font-size: 12px; color: var(--muted); }
+    #tlActs span { position: absolute; top: 0; transform: translateX(2px); }
+    #tlTrack { position: absolute; left: 0; right: 0; top: 18px; height: 8px; border-radius: 4px; background: rgba(21, 20, 26, 0.1); overflow: hidden; }
+    #tlTrack .act { position: absolute; top: 0; bottom: 0; }
+    #tlTrack .act:nth-child(odd) { background: rgba(21, 20, 26, 0.05); }
+    #tlTrack .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(21, 20, 26, 0.28); }
+    #tlFill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, rgba(122, 28, 28, 0.55), rgba(21, 20, 26, 0.8)); }
+    #timelineSlider {
+      position: absolute; left: -8px; right: -8px; top: 9px; width: calc(100% + 16px); height: 26px;
+      -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; margin: 0;
+    }
+    #timelineSlider::-webkit-slider-runnable-track { background: transparent; height: 26px; }
+    #timelineSlider::-moz-range-track { background: transparent; height: 26px; }
+    #timelineSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--ink); border: 2px solid var(--paper); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    #timelineSlider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 2px solid var(--paper); }
+    #timeDisplay { flex: none; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+
+    /* ---------- Caption ---------- */
+    #scriptBanner {
+      position: fixed; z-index: 30; pointer-events: none;
+      left: 50%; transform: translateX(-50%);
+      bottom: calc(var(--tp) + 6px);
+      width: min(820px, calc(100vw - 32px));
+      text-align: center;
+      padding: 8px 18px 9px;
+      background: rgba(239, 232, 218, 0.86);
+      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+      border-radius: 10px;
+      transition: opacity 0.3s;
+    }
+    #sceneHeader { display: none; }
+    #speakerName { font-size: 12.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--crimson); }
+    #dialogueLine { font-size: 18px; font-style: italic; line-height: 1.32; margin-top: 2px; text-wrap: balance; }
+    #stageDirection { font-size: 14px; color: var(--muted); margin-top: 3px; text-wrap: balance; }
+    #stageDirection:empty, #dialogueLine:empty { display: none; }
+    .hidden { opacity: 0 !important; }
+
+    /* ---------- Sound card ---------- */
     #ytDock {
-      position: fixed;
-      bottom: 14px;
-      right: 14px;
-      width: 185px;
-      height: 104px;
-      z-index: 35;
-      border: 2px solid var(--ink);
-      border-radius: 6px;
-      overflow: hidden;
-      background: #000;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      position: fixed; top: calc(var(--hdr) + 10px); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 35;
+      width: 220px; height: 124px; border-radius: 8px; overflow: hidden; background: #000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); border: 1px solid var(--ink);
     }
     #ytDock.tucked { z-index: 1; opacity: 0.01; pointer-events: none; }
     #ytPlayer, #ytPlayer iframe { width: 100%; height: 100%; border: 0; display: block; }
+    #ytDockHint {
+      position: fixed; top: calc(var(--hdr) + 140px); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 36;
+      width: 220px; font-size: 13.5px; line-height: 1.35; background: var(--ink); color: var(--paper);
+      padding: 6px 10px; border-radius: 6px; pointer-events: none;
+    }
     #ytFallback {
-      position: fixed; bottom: 14px; right: 14px; z-index: 38;
-      width: 280px; display: none;
-      background: rgba(241, 236, 225, 0.98);
-      border: 2px solid var(--ink); border-radius: 6px;
-      padding: 10px 12px; font-size: 12.5px; line-height: 1.4;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      position: fixed; top: calc(var(--hdr) + 10px); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 38;
+      width: 300px; display: none; background: var(--paper); border: 1px solid var(--ink); border-radius: 8px;
+      padding: 12px 14px; font-size: 14.5px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
     #ytFallback.show { display: block; }
-    #ytFallback .fbBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    #ytFallback a {
-      font-size: 12px; color: var(--paper); background: var(--ink); text-decoration: none;
-      padding: 4px 9px; border-radius: 4px; border: 1px solid var(--ink);
-    }
-    #ytDockHint {
-      position: fixed;
-      bottom: 122px;
-      right: 14px;
-      z-index: 36;
-      font-size: 11px;
-      background: rgba(17, 18, 21, 0.9);
-      color: var(--paper);
-      padding: 4px 8px;
-      border-radius: 4px;
-      pointer-events: none;
-      max-width: 220px;
-    }
+    #ytFallback .fbBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    #ytFallback button { font-size: 13.5px; background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; }
+    #ytFallback a { font-size: 13.5px; color: var(--paper); background: var(--ink); text-decoration: none; padding: 5px 12px; border-radius: 999px; }
 
-    #parchmentShield {
-      position: fixed;
-      inset: 0;
-      z-index: 5;
-      background-color: var(--paper);
-      background-image:
-        radial-gradient(rgba(17, 18, 21, 0.04) 1px, transparent 0),
-        radial-gradient(ellipse at center, transparent 45%, rgba(140, 125, 100, 0.36) 100%);
-      background-size: 20px 20px, 100% 100%;
+    /* ---------- Cast ---------- */
+    #castPanel {
+      position: fixed; top: calc(var(--hdr) + 10px); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 45;
+      width: min(330px, calc(100vw - 32px)); max-height: calc(100vh - var(--hdr) - var(--tp) - 30px); overflow-y: auto;
+      background: var(--paper); border: 1px solid var(--ink); border-radius: 10px; padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); display: none;
     }
+    #castPanel.show { display: block; }
+    #castPanel h2 { font-family: var(--display); font-weight: 400; font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
+    #castPanel h2 button { border: none; background: none; font-size: 22px; cursor: pointer; line-height: 1; }
+    #castPanel .sub { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+    .castRow { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+    .castRow .sw { width: 14px; height: 14px; border-radius: 50%; }
+    .castRow b { font-weight: 600; font-size: 15.5px; display: block; }
+    .castRow small { font-size: 13px; color: var(--muted); display: block; line-height: 1.25; }
+    .castRow .st { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .castRow.here .st { color: var(--crimson); font-weight: 600; }
+    .castRow.dead { opacity: 0.5; }
+    .castRow { cursor: default; }
 
-    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
-    #stageCanvas { z-index: 10; }
-    #uiCanvas { z-index: 15; pointer-events: none; }
+    /* ---------- Sync ---------- */
+    #syncPanel {
+      position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(var(--hdr) + 10px); z-index: 39;
+      width: min(390px, calc(100vw - 32px)); display: none;
+      background: var(--paper); border: 1px solid var(--ink); border-radius: 10px;
+      padding: 12px 14px; font-size: 14.5px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    #syncPanel.show { display: block; }
+    #syncPanel button { font-size: 13.5px; background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; color: var(--ink); }
+    #syncPanel .syHead { display: flex; justify-content: space-between; align-items: center; font-family: var(--display); font-size: 19px; }
+    #syncPanel .syHead button { border: none; font-size: 22px; padding: 0 4px; line-height: 1; }
+    #syncPanel .syHint { margin-top: 4px; color: var(--muted); }
+    #syncLine { margin-top: 8px; padding: 7px 10px; background: rgba(21, 20, 26, 0.06); border-radius: 6px; font-weight: 600; font-size: 15px; }
+    #syncLine small { display: block; font-weight: 400; font-size: 12.5px; color: var(--muted); }
+    #syncLine .pinTag { color: var(--crimson); font-weight: 600; }
+    #syncPanel .syRow { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    #syncPanel #syncNow { flex: 1; font-size: 18px; font-weight: 600; padding: 9px 12px; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    #syncNow:active { transform: scale(0.97); }
+    #syncPanel .syFoot { font-size: 13px; }
+    #syncPanel .syFoot button { font-size: 12.5px; padding: 3px 9px; }
+    #syncCount { flex: 1; min-width: 120px; }
+    #syncOut { display: none; width: 100%; height: 64px; margin-top: 6px; font-size: 11px; font-family: ui-monospace, monospace; }
+    #syncOut.show { display: block; }
 
-    #topBar {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 40;
-      background: rgba(241, 236, 225, 0.95);
-      border: 1px solid rgba(17, 18, 21, 0.45);
-      padding: 7px 12px;
-      border-radius: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      align-items: center;
-      justify-content: center;
-      width: 96vw;
-      max-width: 1260px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    /* ---------- Opening page ---------- */
+    #intro {
+      position: fixed; inset: 0; z-index: 60;
+      display: grid; place-items: center; overflow-y: auto;
+      padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+      background: radial-gradient(ellipse at 50% 42%, rgba(239, 232, 218, 0.8) 0%, rgba(239, 232, 218, 0.94) 55%, rgba(222, 210, 188, 0.98) 100%);
+      transition: opacity 0.9s ease;
     }
-    button, select {
-      font-family: inherit;
-      font-size: 12px;
-      color: var(--ink);
-      background: transparent;
-      border: 1px solid rgba(17, 18, 21, 0.75);
-      padding: 4px 9px;
-      border-radius: 4px;
-      cursor: pointer;
+    #intro.gone { opacity: 0; pointer-events: none; }
+    .introCard { max-width: 620px; text-align: center; }
+    .introCard .kicker { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--muted); }
+    .introCard h2 {
+      font-family: var(--display); font-weight: 400; line-height: 0.92;
+      font-size: clamp(64px, 15vw, 132px); margin: 10px 0 6px; letter-spacing: -0.01em;
+      animation: inkIn 2.4s ease-out both;
     }
-    select { max-width: 46vw; }
-    button:hover { background: var(--ink); color: var(--paper); }
-    #scrubberWrap { display: flex; align-items: center; gap: 6px; flex: 1 1 260px; min-width: 200px; }
-    input[type="range"] { flex: 1; accent-color: #111215; cursor: pointer; }
-    #timeDisplay { font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; text-align: right; }
-
-    #scriptBanner {
-      position: fixed;
-      bottom: 12px;
-      left: 14px;
-      right: 215px;
-      z-index: 30;
-      pointer-events: none;
-      background: rgba(241, 236, 225, 0.92);
-      padding: 8px 14px;
-      border-radius: 6px;
-      border-left: 4px solid var(--ink);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.07);
-      transition: opacity 0.3s;
+    .introCard h2 span { display: block; font-size: 0.42em; font-style: italic; color: var(--crimson); letter-spacing: 0.02em; }
+    @keyframes inkIn { from { opacity: 0; filter: blur(14px); letter-spacing: 0.12em; } to { opacity: 1; filter: blur(0); letter-spacing: -0.01em; } }
+    .introCard .byline { font-size: 18px; font-style: italic; color: var(--muted); }
+    .introCard p.lede { font-size: 18px; line-height: 1.5; margin: 18px auto 0; max-width: 34em; text-wrap: pretty; }
+    .introBtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+    .introBtns button {
+      font-size: 17px; padding: 11px 24px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--ink); background: transparent; color: var(--ink);
     }
-    #sceneHeader { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.68; }
-    #dialogueLine { font-size: 14px; font-weight: bold; margin-top: 2px; color: #0d0e11; }
-    #stageDirection { font-size: 11.5px; font-style: italic; color: #4a3f35; margin-top: 2px; }
-    .hidden { opacity: 0 !important; }
+    .introBtns button.primary { background: var(--ink); color: var(--paper); }
+    .introBtns button:hover { transform: translateY(-1px); }
+    .introCard .keys { margin-top: 22px; font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .introCard kbd { font-family: var(--body); font-size: 12.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 6px; background: rgba(255,255,255,0.35); }
+    .introCard .rule { width: 80px; height: 1px; background: var(--ink-soft); margin: 18px auto 0; }
 
     @media (max-width: 700px) {
-      #scriptBanner { right: 10px; left: 10px; bottom: 10px; padding: 6px 10px; }
-      #dialogueLine { font-size: 12.5px; }
-      #stageDirection { font-size: 11px; }
-      #ytDock { bottom: auto; top: 128px; right: 10px; width: 160px; height: 90px; }
-      #ytDockHint { bottom: auto; top: 222px; right: 10px; }
-      #ytFallback { bottom: auto; top: 128px; right: 10px; left: 10px; width: auto; }
-      #timeDisplay { min-width: 0; }
+      .brand h1 { font-size: 21px; }
+      #nowLabel { font-size: 11.5px; }
+      .tools { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+      .tools::-webkit-scrollbar { display: none; }
+      .tbtn, select#sceneSelector { font-size: 13.5px; padding: 5px 11px; flex: none; }
+      select#sceneSelector { max-width: 52vw; }
+      #dialogueLine { font-size: 16px; }
+      #stageDirection { font-size: 13px; }
+      #ytDock { width: 176px; height: 99px; }
+      #ytDockHint { top: calc(var(--hdr) + 114px); width: 176px; font-size: 12.5px; }
+      #ytFallback { left: max(16px, env(safe-area-inset-left, 0px)); width: auto; }
+      #syncPanel { top: auto !important; bottom: calc(var(--tp) + 8px); }
+      body.syncing #scriptBanner { display: none; }
+      #timeDisplay { font-size: 12.5px; }
+      #timeDisplay .tot { display: none; }
+    }
+    @media (hover: none) { .introCard .keys { display: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .introCard h2 { animation: none; }
+      #intro { transition: none; }
     }
   </style>
 </head>
 <body>
 
-  <div id="topBar">
-    <button id="playPauseBtn">Play / Pause</button>
-    <select id="sceneSelector" title="Jump to any scene"></select>
-    <div id="scrubberWrap">
-      <input type="range" id="timelineSlider" min="0" max="10873" value="80" step="1">
-      <span id="timeDisplay">00:01:20 / 03:01:13</span>
+  <header id="topBar">
+    <div class="brand">
+      <h1>King <em>Lear</em></h1>
+      <span id="nowLabel">Act I &middot; Scene i</span>
     </div>
-    <button id="toggleNamesBtn">Names: On</button>
-    <button id="toggleTextBtn">Text: On</button>
-    <button id="hideDockBtn">Hide Audio Box</button>
-  </div>
+    <div class="tools">
+      <select id="sceneSelector" title="Jump to a scene" aria-label="Jump to a scene"></select>
+      <button class="tbtn" id="castBtn">Cast</button>
+      <button class="tbtn on" id="toggleTextBtn" aria-pressed="true">Words</button>
+      <button class="tbtn on" id="toggleNamesBtn" aria-pressed="true">Names</button>
+      <button class="tbtn" id="syncBtn">Sync</button>
+      <button class="tbtn on" id="hideDockBtn" aria-pressed="true">Sound</button>
+      <button class="tbtn" id="fsBtn" title="Full screen">Full screen</button>
+    </div>
+  </header>
 
   <div id="parchmentShield"></div>
+  <canvas id="bgCanvas"></canvas>
   <canvas id="stageCanvas"></canvas>
+  <canvas id="lightCanvas"></canvas>
   <canvas id="uiCanvas"></canvas>
 
-  <div id="scriptBanner">
-    <div id="sceneHeader">Act I, Scene i</div>
+  <div id="scriptBanner" aria-live="polite">
+    <div id="sceneHeader"></div>
+    <div id="speakerName"></div>
     <div id="dialogueLine"></div>
     <div id="stageDirection"></div>
   </div>
 
-  <div id="ytDockHint">1. Tap video to start audio &rarr; 2. Click "Hide Audio Box"</div>
+  <nav id="transport" aria-label="Playback">
+    <button id="playPauseBtn" class="paused" aria-label="Play or pause">
+      <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>
+      <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>
+    </button>
+    <div id="tlWrap">
+      <div id="tlActs"></div>
+      <div id="tlTrack"><div id="tlFill"></div></div>
+      <input type="range" id="timelineSlider" min="0" max="10873" value="80" step="1" aria-label="Position in the play">
+    </div>
+    <span id="timeDisplay">0:01:20<span class="tot"> / 3:01:13</span></span>
+  </nav>
+
+  <aside id="castPanel" aria-label="Dramatis personae">
+    <h2>Dramatis Person&aelig; <button id="castClose" aria-label="Close cast list">&times;</button></h2>
+    <div class="sub">Who is on stage now, and who has fallen.</div>
+    <div id="castList"></div>
+  </aside>
+
+  <section id="intro" aria-label="Opening page">
+    <div class="introCard">
+      <div class="kicker">An ink theatre in five acts</div>
+      <h2>King Lear<span>a tragedy</span></h2>
+      <div class="byline">by William Shakespeare</div>
+      <div class="rule"></div>
+      <p class="lede">Ink figures act out the play in water while a full recording plays. Start the recording in the sound box and the figures follow it, line by line.</p>
+      <div class="introBtns">
+        <button class="primary" id="beginBtn">Raise the curtain</button>
+        <button id="resumeBtn" hidden>Resume</button>
+        <button id="silentBtn">Watch without sound</button>
+      </div>
+      <div class="keys"><kbd>Space</kbd> play or pause &nbsp; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous or next line &nbsp; <kbd>[</kbd> <kbd>]</kbd> previous or next scene &nbsp; <kbd>F</kbd> full screen</div>
+    </div>
+  </section>
+
+  <div id="ytDockHint">Tap &#9654; in the video to start the sound.</div>
+  <div id="syncPanel" role="dialog" aria-label="Sync to the recording">
+    <div class="syHead"><b>Sync to the recording</b><button id="syncClose" aria-label="Close sync">&times;</button></div>
+    <div class="syHint">Play the recording. When you hear this line begin, tap <b>Now</b>. The puppets lock to that moment and the lines in between adjust to fit.</div>
+    <div id="syncLine"></div>
+    <div class="syRow">
+      <button id="syncPrev">&#9664; Line</button>
+      <button id="syncNow">Now</button>
+      <button id="syncNext">Line &#9654;</button>
+    </div>
+    <div class="syRow syFoot">
+      <span id="syncCount"></span>
+      <button id="syncUnpin">Unpin</button>
+      <button id="syncCopy">Copy timings</button>
+      <button id="syncClear">Clear all</button>
+    </div>
+    <textarea id="syncOut" readonly aria-label="Timings to copy"></textarea>
+  </div>
   <div id="ytDock"><div id="ytPlayer"></div></div>
   <div id="ytFallback">
     <div id="ytFallbackMsg"></div>
@@ -208,10 +373,14 @@
     const sceneHeaderEl = document.getElementById('sceneHeader');
     const dialogueLineEl = document.getElementById('dialogueLine');
     const stageDirectionEl = document.getElementById('stageDirection');
+    const speakerNameEl = document.getElementById('speakerName');
+    const nowLabelEl = document.getElementById('nowLabel');
+    const transportEl = document.getElementById('transport');
+    const tlFill = document.getElementById('tlFill');
 
     let nameMode = 1;      // 0 off, 1 on
     let textOn = true;
-    let simRunning = true;
+    let simRunning = false;
     let ytPlaying = false;
     let isScrubbing = false;
     let simTime = 80;
@@ -226,7 +395,7 @@
     function resize() {
       DPR = Math.min(2, window.devicePixelRatio || 1);
       W = window.innerWidth; H = window.innerHeight;
-      for (const c of [stageCanvas, uiCanvas]) {
+      for (const c of [stageCanvas, uiCanvas, document.getElementById('bgCanvas'), document.getElementById('lightCanvas')]) {
         c.width = Math.round(W * DPR);
         c.height = Math.round(H * DPR);
       }
@@ -236,21 +405,20 @@
     window.addEventListener('resize', resize);
     resize();
 
-    toggleNamesBtn.addEventListener('click', () => {
-      nameMode = nameMode ? 0 : 1;
-      toggleNamesBtn.textContent = nameMode ? 'Names: On' : 'Names: Off';
-    });
+    const setOn = (btn, on) => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    toggleNamesBtn.addEventListener('click', () => { nameMode = nameMode ? 0 : 1; setOn(toggleNamesBtn, !!nameMode); });
     toggleTextBtn.addEventListener('click', () => {
       textOn = !textOn;
-      toggleTextBtn.textContent = textOn ? 'Text: On' : 'Text: Off';
+      setOn(toggleTextBtn, textOn);
       scriptBanner.classList.toggle('hidden', !textOn);
     });
-    hideDockBtn.addEventListener('click', () => {
-      const tucked = ytDock.classList.toggle('tucked');
-      ytDockHint.style.display = tucked ? 'none' : 'block';
-      if (tucked) document.getElementById('ytFallback').classList.remove('show');
-      hideDockBtn.textContent = tucked ? 'Show Audio Box' : 'Hide Audio Box';
-    });
+    function setSoundCard(show) {
+      ytDock.classList.toggle('tucked', !show);
+      ytDockHint.style.display = show && !ytPlaying ? 'block' : 'none';
+      if (!show) document.getElementById('ytFallback').classList.remove('show');
+      setOn(hideDockBtn, show);
+    }
+    hideDockBtn.addEventListener('click', () => setSoundCard(ytDock.classList.contains('tucked')));
 
     // =====================================================================
     //  CAST
@@ -265,9 +433,9 @@
       { id: 'edmund',     name: 'Edmund',            homeX: 0.50, homeY: 0.80, scale: 1.02, rgb: [36, 14, 28], crown: 'none' },
       { id: 'kent',       name: 'Kent (Caius)',      homeX: 0.75, homeY: 0.54, scale: 1.04, rgb: [26, 34, 44], crown: 'none',    beard: 'dark' },
       { id: 'fool',       name: 'The Fool',          homeX: 0.36, homeY: 0.56, scale: 0.84, rgb: [40, 42, 54], crown: 'coxcomb' },
-      { id: 'albany',     name: 'Albany',            homeX: 0.14, homeY: 0.42, scale: 1.02, rgb: [30, 44, 32], crown: 'coronet', beard: 'dark', gown: true },
-      { id: 'cornwall',   name: 'Cornwall',          homeX: 0.86, homeY: 0.42, scale: 1.04, rgb: [54, 12, 12], crown: 'coronet', gown: true },
-      { id: 'france',     name: 'King of France',    homeX: 0.36, homeY: 0.20, scale: 1.02, rgb: [22, 42, 66], crown: 'king',    gown: true },
+      { id: 'albany',     name: 'Albany',            homeX: 0.14, homeY: 0.42, scale: 1.02, rgb: [30, 44, 32], crown: 'coronet', beard: 'dark', gown: true, cape: [24, 52, 34] },
+      { id: 'cornwall',   name: 'Cornwall',          homeX: 0.86, homeY: 0.42, scale: 1.04, rgb: [54, 12, 12], crown: 'coronet', gown: true, cape: [30, 6, 8] },
+      { id: 'france',     name: 'King of France',    homeX: 0.36, homeY: 0.20, scale: 1.02, rgb: [22, 42, 66], crown: 'king',    gown: true, cape: [30, 44, 110] },
       { id: 'burgundy',   name: 'Burgundy',          homeX: 0.64, homeY: 0.20, scale: 0.98, rgb: [58, 50, 38], crown: 'coronet', gown: true },
       { id: 'oswald',     name: 'Oswald',            homeX: 0.15, homeY: 0.58, scale: 0.92, rgb: [28, 30, 24], crown: 'none' },
       { id: 'curan',      name: 'Curan',             homeX: 0.15, homeY: 0.78, scale: 0.88, rgb: [54, 56, 60], crown: 'none' },
@@ -348,12 +516,12 @@
         },
         lines: [
           { s: 'lear',     t: 'Now, our joy, although our last and least—what can you say to draw a third more opulent than your sisters? Speak.', do: { cordelia: { x: 0.58 } } },
-          { s: 'cordelia', t: 'Nothing, my lord.', sd: 'A silence falls on the court', do: { goneril: { p: 'whisper', to: 'regan' }, regan: { p: 'whisper', to: 'goneril' } } },
+          { s: 'cordelia', t: 'Nothing, my lord.', fx: ['hush'], sd: 'A silence falls on the court', do: { goneril: { p: 'whisper', to: 'regan' }, regan: { p: 'whisper', to: 'goneril' } } },
           { s: 'lear',     t: 'Nothing? Nothing will come of nothing: speak again!', do: { lear: { p: 'point' } }, fx: ['thud'] },
           { s: 'cordelia', t: 'Unhappy that I am, I cannot heave my heart into my mouth: I love your majesty according to my bond; no more nor less.',
             do: { cordelia: { p: 'plead' }, goneril: { p: 'stand' }, regan: { p: 'stand' } } },
           { s: 'lear',     t: 'Here I disclaim all my paternal care, propinquity and property of blood, and as a stranger to my heart and me hold thee from this for ever!',
-            do: { lear: { p: 'rage' }, cordelia: { p: 'bow' }, kent: { x: 0.38, p: 'plead', to: 'lear' } }, fx: ['thunder'], sd: 'Lear towers over her and casts her off' }
+            do: { lear: { p: 'rage' }, cordelia: { p: 'bow' }, kent: { x: 0.38, p: 'plead', to: 'lear' } }, fx: ['thunder', 'tearMid'], sd: 'Lear towers over her and casts her off; her third of the map is torn in two' }
         ]
       },
       { start: 630, end: 748, title: '[00:10:34] Act I.i (d) — Kent Intervenes & Is Banished',
@@ -417,7 +585,7 @@
           edmund: S(0.50, 0.54, 'holdLetter', { w: 1 })
         },
         lines: [
-          { s: 'edmund',     t: 'Thou, Nature, art my goddess; to thy law my services are bound. Wherefore base? Now, gods, stand up for bastards!',
+          { s: 'edmund',     t: 'Thou, Nature, art my goddess; to thy law my services are bound. Wherefore base? Now, gods, stand up for bastards!', fx: ['vortex:edmund'],
             mid: { do: { edmund: { p: 'skyPoint', w: 0 } }, sd: 'Edmund flings the letter skyward in defiance of the gods' } },
           { s: 'gloucester', t: 'Why so earnestly seek you to put up that letter? Give me the letter, sir.',
             do: { gloucester: S(0.34, 0.56, 'point', { to: 'edmund' }), edmund: { x: 0.52, p: 'hideLetter', to: 'gloucester' } },
@@ -476,7 +644,7 @@
           { s: 'goneril', t: 'Be then desired to disquantity your train; and the remainders that shall still depend, to be such men as may besort your age.', do: { goneril: { p: 'command' }, lear: { p: 'stand' }, fool: { p: 'cower' } } },
           { s: 'lear',    t: 'Darkness and devils! Saddle my horses; call my train together! Hear, Nature, hear; dear goddess, hear!',
             do: { lear: { p: 'rage' }, albany: { p: 'plead', to: 'lear' } }, fx: ['thunder'],
-            mid: { do: { lear: { p: 'kneelCurse' } }, fx: ['flash'], sd: 'Lear falls to his knees and calls on Nature to curse his daughter' } },
+            mid: { do: { lear: { p: 'kneelCurse' } }, fx: ['flash', 'vortex:lear', 'close:lear+goneril'], sd: 'Lear falls to his knees and calls on Nature to curse his daughter' } },
           { s: 'lear',    t: 'How sharper than a serpent’s tooth it is to have a thankless child!', do: { lear: { p: 'point', x: 0.50 }, goneril: { p: 'turnAway' } } }
         ]
       },
@@ -583,10 +751,10 @@
           fool: S(0.38, 0.58, 'shiver', { to: 'lear' })
         },
         lines: [
-          { s: 'lear', t: 'Blow, winds, and crack your cheeks! rage! blow! You cataracts and hurricanoes, spout till you have drench’d our steeples!', fx: ['thunder'] },
+          { s: 'lear', t: 'Blow, winds, and crack your cheeks! rage! blow! You cataracts and hurricanoes, spout till you have drench’d our steeples!', fx: ['thunder', 'vortex:lear', 'gust'] },
           { s: 'fool', t: 'O nuncle, court holy-water in a dry house is better than this rain-water out o’ door!', do: { fool: { x: 0.42, p: 'takeHand', to: 'lear' }, lear: { p: 'stand' } }, sd: 'The Fool tugs at Lear’s sleeve, begging him to shelter' },
           { s: 'lear', t: 'Rumble thy bellyful! Spit, fire! spout, rain! Nor rain, wind, thunder, fire, are my daughters: I tax not you, you elements, with unkindness!',
-            do: { lear: { x: 0.54, p: 'skyRage' }, fool: { x: 0.36, p: 'cower' } }, fx: ['thunder'] },
+            do: { lear: { x: 0.54, p: 'skyRage' }, fool: { x: 0.36, p: 'cower' } }, fx: ['thunder', 'gust'] },
           { s: 'lear', t: 'I am a man more sinn’d against than sinning. My wits begin to turn.',
             do: { lear: { p: 'clutchHead' }, kent: S(0.66, 0.56, 'guide', { to: 'lear' }) }, sd: 'Kent finds them and gently leads the King toward shelter' }
         ]
@@ -649,11 +817,11 @@
         lines: [
           { s: 'lear',  t: 'I will arraign them straight. Come, sit thou here, most learned justicer; thou, sapient sir, sit here. Now, you she-foxes!',
             do: { edgar: { p: 'sitGround' } }, mid: { do: { fool: { x: 0.33, p: 'sitGround' }, lear: { p: 'point', to: 'edgar' } } }, sd: 'Lear seats his madman “judges” beside the stool' },
-          { s: 'fool',  t: 'Come hither, mistress. Is your name Goneril?', do: { fool: { x: 0.42, p: 'point', face: 'R' } } },
-          { s: 'lear',  t: 'She cannot deny it! Cry you mercy, I took you for a joint-stool.', do: { lear: { x: 0.44, p: 'bow', face: 'R' } }, sd: 'Lear bows gravely to the stool' },
+          { s: 'fool',  t: 'Come hither, mistress. Is your name Goneril?', do: { fool: { x: 0.42, p: 'point', face: 'R' }, goneril: S(0.54, 0.53, 'defy', { ghost: 1, to: 'lear' }) }, sd: 'Lear’s madness conjures Goneril out of the stool' },
+          { s: 'lear',  t: 'She cannot deny it! Cry you mercy, I took you for a joint-stool.', do: { lear: { x: 0.44, p: 'bow', face: 'R' } }, mid: { do: { goneril: null }, sd: 'The vision dissolves back into a wooden stool' }, sd: 'Lear bows gravely to the phantom daughter' },
           { s: 'lear',  t: 'Then let them anatomize Regan; see what breeds about her heart. Is there any cause in nature that makes these hard hearts?',
-            do: { lear: { p: 'clutchHead', face: null }, kent: { x: 0.30, p: 'plead' } } },
-          { s: 'fool',  t: 'And I’ll go to bed at noon.', do: { lear: { x: 0.40, p: 'sleep' }, fool: { x: 0.36, p: 'bow', face: null } },
+            do: { lear: { p: 'clutchHead', face: null }, kent: { x: 0.30, p: 'plead' }, regan: S(0.56, 0.53, 'turnAway', { ghost: 1, to: 'lear' }) }, sd: 'A phantom Regan rises; Lear begs to see her heart cut open' },
+          { s: 'fool',  t: 'And I’ll go to bed at noon.', do: { lear: { x: 0.40, p: 'sleep' }, fool: { x: 0.36, p: 'bow', face: null }, regan: null },
             mid: { do: { fool: null }, sd: 'The Fool bows — and is never seen again' } }
         ]
       },
@@ -672,11 +840,11 @@
           { s: 'cornwall',   t: 'Bind fast his corky arms! Where hast thou sent the King?', do: { goneril: null, edmund: null }, fx: ['thud'], sd: 'Gloucester is lashed to a chair in his own hall' },
           { s: 'gloucester', t: 'To Dover! Because I would not see thy cruel nails pluck out his poor old eyes!', do: { regan: { x: 0.58, p: 'pluck', to: 'gloucester' } }, sd: 'Regan plucks at the old man’s beard' },
           { s: 'cornwall',   t: 'See’t shalt thou never! Fellows, hold the chair. Upon these eyes of thine I’ll set my foot!',
-            do: { regan: { x: 0.72, p: 'stand' }, cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' } }, mid: { fx: ['blind1', 'blood:gloucester', 'thunder'], sd: 'Cornwall puts out one of Gloucester’s eyes' } },
+            do: { regan: { x: 0.72, p: 'stand' }, cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' } }, mid: { fx: ['blind1', 'blood:gloucester', 'thunder', 'lensBlood', 'close:gloucester+cornwall'], sd: 'Cornwall puts out one of Gloucester’s eyes' } },
           { s: 'oldman',     t: 'Hold your hand, my lord! I have served you ever since I was a child, but better service have I never done you than now to bid you hold!',
             do: { oldman: { x: 0.36, p: 'duel', to: 'cornwall' }, cornwall: { x: 0.46, p: 'duel', to: 'oldman' } },
             mid: { do: { regan: { x: 0.30, p: 'strike', to: 'oldman' }, oldman: { x: 0.36, p: 'collapse' }, cornwall: { x: 0.48, p: 'clutchArm' } }, fx: ['blood:oldman', 'blood:cornwall'], sd: 'The Servant wounds Cornwall — Regan stabs him from behind' } },
-          { s: 'cornwall',   t: 'Out, vile jelly! Where is thy lustre now?', do: { cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' }, regan: { x: 0.30, p: 'stand' } }, fx: ['blind', 'blood:gloucester', 'thunder'], sd: 'Cornwall puts out the other eye' },
+          { s: 'cornwall',   t: 'Out, vile jelly! Where is thy lustre now?', do: { cornwall: { x: 0.57, p: 'gouge', to: 'gloucester' }, regan: { x: 0.30, p: 'stand' } }, fx: ['blind', 'blood:gloucester', 'thunder', 'lensBlood', 'close:gloucester+cornwall'], sd: 'Cornwall puts out the other eye' },
           { s: 'regan',      t: 'Go thrust him out at gates, and let him smell his way to Dover!',
             do: { regan: { x: 0.72, p: 'point' }, cornwall: { x: 0.66, p: 'clutchArm' }, gloucester: { x: 0.40, p: 'blindWalk', face: 'L' } }, mid: { do: { gloucester: { x: 0.10, p: 'blindWalk' } } } }
         ]
@@ -785,7 +953,7 @@
           { s: 'cordelia', t: 'And so I am, I am!', do: { cordelia: { x: 0.54, p: 'kneelEmbrace', to: 'lear' } } },
           { s: 'lear',     t: 'Be your tears wet? Yes, faith. I know you do not love me; for your sisters have, as I do remember, done me wrong: you have some cause, they have not.',
             do: { lear: { p: 'touchFace', to: 'cordelia' }, cordelia: { p: 'kneel' } }, sd: 'He touches her face to feel her tears' },
-          { s: 'cordelia', t: 'No cause, no cause.', do: { lear: { p: 'kneelEmbrace', to: 'cordelia' }, cordelia: { p: 'kneelEmbrace', to: 'lear' } }, sd: 'They hold each other' }
+          { s: 'cordelia', t: 'No cause, no cause.', fx: ['hush'], do: { lear: { p: 'kneelEmbrace', to: 'cordelia' }, cordelia: { p: 'kneelEmbrace', to: 'lear' } }, sd: 'They hold each other' }
         ]
       },
       { start: 8905, end: 9370, title: '[02:28:29] Act V.i & V.ii — The Battle & "Ripeness is all"',
@@ -840,7 +1008,7 @@
           { s: 'edgar',  t: 'Draw thy sword! Behold, it is the privilege of mine honors, my oath, and my profession: I protest, Maugre thy strength, youth, place, and eminence, despite thy victor sword, thou art a traitor!',
             sd: 'An unknown knight answers the trumpet’s third call', mid: { do: { edmund: { x: 0.58, y: 0.58, p: 'fallen' }, edgar: { x: 0.48, p: 'point', to: 'edmund' }, goneril: { p: 'plead', to: 'edmund' } }, fx: ['blood:edmund', 'thunder'], sd: 'Edmund falls under his brother’s sword' } },
           { s: 'edgar',  t: 'My name is Edgar, and thy father’s son. The gods are just, and of our pleasant vices make instruments to plague us!',
-            do: { edgar: { p: 'gesture' }, goneril: null }, sd: 'The knight lifts his visor: it is Edgar. Goneril flees' },
+            do: { edgar: { p: 'gesture' }, goneril: null }, fx: ['hush'], sd: 'The knight lifts his visor: it is Edgar. Goneril flees' },
           { s: 'edmund', t: 'Thou’st spoken right, ’tis true; the wheel is come full circle: I am here.',
             do: { goneril: S(0.80, 0.64, 'fallen'), regan: S(0.88, 0.66, 'fallen'), edgar: { p: 'kneel', to: 'edmund' } }, sd: 'The bodies of Goneril and Regan are carried in' },
           { s: 'edmund', t: 'I pant for life: some good I mean to do, despite of mine own nature. Quickly send—be brief in it—to the castle! For my writ is on the life of Lear and on Cordelia!',
@@ -861,14 +1029,14 @@
         },
         lines: [
           { s: 'lear',  t: 'Howl, howl, howl! O, you are men of stones: had I your tongues and eyes, I’d use them so that heaven’s vault should crack! She’s gone for ever!',
-            do: { lear: { p: 'howl' } }, fx: ['thunder'], sd: 'Lear enters with Cordelia dead in his arms',
+            do: { lear: { p: 'howl' } }, fx: ['thunder', 'close:lear+cordelia'], sd: 'Lear enters with Cordelia dead in his arms',
             mid: { do: { lear: { x: 0.46, p: 'kneel', to: 'cordelia' }, cordelia: { x: 0.53, y: 0.58, p: 'fallen' } }, sd: 'He lays her down on the earth' } },
           { s: 'lear',  t: 'Cordelia, Cordelia! stay a little. Ha! What is’t thou say’st? Her voice was ever soft, gentle, and low, an excellent thing in woman.',
             do: { lear: { p: 'feather', to: 'cordelia' } }, sd: 'He holds a feather to her lips, searching for breath' },
           { s: 'lear',  t: 'And my poor fool is hang’d! No, no, no life! Why should a dog, a horse, a rat, have life, and thou no breath at all? Thou’lt come no more, never, never, never, never, never!',
-            do: { lear: { p: 'kneelGrief' } } },
+            do: { lear: { p: 'kneelGrief' } }, fx: ['hush'] },
           { s: 'lear',  t: 'Pray you, undo this button: thank you, sir. Do you see this? Look on her, look, her lips, look there, look there!',
-            do: { lear: { p: 'kneelPoint', to: 'cordelia' }, kent: { x: 0.38, p: 'kneel', to: 'lear' } }, mid: { do: { lear: { p: 'fallen' } }, sd: 'Lear dies, still looking at her lips' } },
+            do: { lear: { p: 'kneelPoint', to: 'cordelia' }, kent: { x: 0.36, p: 'kneel', to: 'lear' } }, mid: { do: { lear: { p: 'collapse' } }, fx: ['thud', 'grey'], sd: 'Lear dies, falling across Cordelia\u2019s body' } },
           { s: 'kent',  t: 'Break, heart; I prithee, break! Vex not his ghost: O, let him pass! he hates him that would upon the rack of this tough world stretch him out longer.',
             do: { kent: { p: 'pray' }, edgar: { x: 0.60, p: 'plead' } } },
           { s: 'edgar', t: 'The weight of this sad time we must obey; speak what we feel, not what we ought to say. The oldest hath borne most: we that are young shall never see so much, nor live so long.',
@@ -888,32 +1056,114 @@
       return st;
     }
 
-    // --- Precompute line timings, effect events and persistent states
+    // --- Line timing. Default spacing comes from each line's length.
+    //     Lines pinned in Sync mode become fixed anchors; everything
+    //     between anchors stretches or squeezes to fit.
+    const ORIG_START = SCENES.map(sc => sc.start);
+    const ALL_LINES = [];
+    SCENES.forEach((sc, si) => sc.lines.forEach((l, li) => { l.key = si + '.' + li; l.si = si; l.li = li; l.gi = ALL_LINES.length; ALL_LINES.push(l); }));
+    const LINE_BY_KEY = {};
+    ALL_LINES.forEach(l => LINE_BY_KEY[l.key] = l);
+    // Timings pasted back from Sync mode get baked in here
+    const BAKED_PINS = {};
+    let PINS = Object.assign({}, BAKED_PINS);
+    try { Object.assign(PINS, JSON.parse(localStorage.getItem('learPins') || '{}') || {}); } catch (e) {}
+    for (const k in PINS) if (!LINE_BY_KEY[k] || typeof PINS[k] !== 'number') delete PINS[k];
+    function savePins() { try { localStorage.setItem('learPins', JSON.stringify(PINS)); } catch (e) {} }
     const FX_TIME = {};
-    SCENES.forEach((sc) => {
-      const dur = sc.end - sc.start;
-      const lead = Math.min(4, dur * 0.05);
-      const weights = sc.lines.map(l => 30 + l.t.length + (l.mid ? 25 : 0));
-      const total = weights.reduce((a, b) => a + b, 0);
-      let acc = 0;
-      sc.events = [];
-      sc.lines.forEach((l, i) => {
-        l.start = sc.start + lead + (dur - lead) * (acc / total);
-        acc += weights[i];
-        l.end = sc.start + lead + (dur - lead) * (acc / total);
-        l.midAt = l.start + (l.end - l.start) * 0.55;
-        if (l.fx) sc.events.push({ time: l.start + 0.3, fx: l.fx });
-        if (l.mid && l.mid.fx) sc.events.push({ time: l.midAt, fx: l.mid.fx });
-      });
-      sc.events.forEach(ev => ev.fx.forEach(f => { if (FX_TIME[f] === undefined) FX_TIME[f] = ev.time; }));
-    });
 
-    SCENES.forEach((sc) => {
-      const opt = document.createElement('option');
-      opt.value = sc.start;
-      opt.textContent = sc.title;
-      sceneSelector.appendChild(opt);
-    });
+    function retime() {
+      const LEAD_W = 12;
+      let pos = 0;
+      const anchors = [];
+      SCENES.forEach((sc, si) => {
+        sc.pos0 = pos;
+        anchors.push({ pos, time: ORIG_START[si], pin: false, si });
+        pos += LEAD_W;
+        sc.lines.forEach(l => {
+          l.pos = pos;
+          pos += 30 + l.t.length + (l.mid ? 25 : 0);
+          if (PINS[l.key] != null) anchors.push({ pos: l.pos, time: PINS[l.key], pin: true });
+        });
+      });
+      anchors.push({ pos, time: TOTAL, pin: false });
+      const pins = anchors.filter(a => a.pin);
+      // A scene's listed start time gives way to any pinned line that contradicts it
+      const kept = anchors.filter(a => a.pin || !pins.some(p => (p.pos < a.pos && p.time >= a.time - 1) || (p.pos > a.pos && p.time <= a.time + 1)));
+      const interp = (q) => {
+        let a = kept[0], b = kept[kept.length - 1];
+        for (const k of kept) { if (k.pos <= q) a = k; if (k.pos > q) { b = k; break; } }
+        if (b.pos === a.pos) return a.time;
+        return a.time + (b.time - a.time) * (q - a.pos) / (b.pos - a.pos);
+      };
+      const keptScene = new Set(kept.filter(a => a.si !== undefined).map(a => a.si));
+      SCENES.forEach((sc, si) => { sc.start = keptScene.has(si) ? ORIG_START[si] : interp(sc.pos0); });
+      ALL_LINES.forEach(l => { l.start = PINS[l.key] != null ? PINS[l.key] : interp(l.pos); });
+      for (const k in FX_TIME) delete FX_TIME[k];
+      if (window.__tlReady) setTimeout(buildTimeline, 0);
+      SCENES.forEach((sc, si) => {
+        sc.end = si < SCENES.length - 1 ? SCENES[si + 1].start : TOTAL;
+        sc.events = [];
+        sc.lines.forEach((l, i) => {
+          l.end = i < sc.lines.length - 1 ? sc.lines[i + 1].start : sc.end;
+          l.midAt = l.start + (l.end - l.start) * 0.55;
+          if (l.fx) sc.events.push({ time: l.start + 0.3, fx: l.fx });
+          if (l.mid && l.mid.fx) sc.events.push({ time: l.midAt, fx: l.mid.fx });
+        });
+        sc.events.forEach(ev => ev.fx.forEach(f => { if (FX_TIME[f] === undefined) FX_TIME[f] = ev.time; }));
+      });
+    }
+    retime();
+
+    const ACT_OF = SCENES.map(sc => (sc.title.match(/Act (\w+)\./) || [0, 'I'])[1]);
+    {
+      let grp = null, cur = '';
+      SCENES.forEach((sc, si) => {
+        if (ACT_OF[si] !== cur) {
+          cur = ACT_OF[si];
+          grp = document.createElement('optgroup');
+          grp.label = 'Act ' + cur;
+          sceneSelector.appendChild(grp);
+        }
+        const opt = document.createElement('option');
+        opt.value = si;
+        opt.textContent = sc.title.replace(/^\[[^\]]*\]\s*Act\s*/, '');
+        grp.appendChild(opt);
+      });
+    }
+    function sceneLabel(si) {
+      const bare = SCENES[si].title.replace(/^\[[^\]]*\]\s*/, '').split(' \u2014 ')[0].replace(/\s*\([a-z]\)\s*$/, '');
+      return bare.replace(/^Act (\w+)\.(\w+)/, 'Act $1 \u00b7 Scene $2');
+    }
+    // Timeline: shaded acts, a tick at each scene
+    function buildTimeline() {
+      const track = document.getElementById('tlTrack'), acts = document.getElementById('tlActs');
+      if (!track || !acts) return;
+      track.querySelectorAll('.act, .tick').forEach(el => el.remove());
+      acts.innerHTML = '';
+      let start = 0;
+      for (let si = 0; si <= SCENES.length; si++) {
+        if (si === SCENES.length || (si > 0 && ACT_OF[si] !== ACT_OF[si - 1])) {
+          const end = si === SCENES.length ? TOTAL : SCENES[si].start;
+          const d = document.createElement('div');
+          d.className = 'act';
+          d.style.left = (start / TOTAL * 100) + '%'; d.style.width = ((end - start) / TOTAL * 100) + '%';
+          track.insertBefore(d, track.firstChild);
+          const lab = document.createElement('span');
+          lab.textContent = ACT_OF[si - 1];
+          lab.style.left = (start / TOTAL * 100) + '%';
+          acts.appendChild(lab);
+          start = end;
+        }
+        if (si < SCENES.length && si > 0) {
+          const t = document.createElement('div');
+          t.className = 'tick'; t.style.left = (SCENES[si].start / TOTAL * 100) + '%';
+          track.appendChild(t);
+        }
+      }
+    }
+    buildTimeline();
+    window.__tlReady = true;
 
     function getSceneIndex(sec) {
       for (let i = 0; i < SCENES.length; i++) if (sec >= SCENES[i].start && sec < SCENES[i].end) return i;
@@ -999,6 +1249,77 @@
       }
       if (spatterPool.length > 400) spatterPool.splice(0, spatterPool.length - 400);
     }
+
+    // =====================================================================
+    //  FLUID INK — soft sprites, drifting wisps and spreading pools
+    // =====================================================================
+    const SPRITES = {};
+    function inkSprite(rgb, kind) {
+      const key = rgb.join(',') + kind;
+      if (SPRITES[key]) return SPRITES[key];
+      const S = 64, cv = document.createElement('canvas');
+      cv.width = cv.height = S;
+      const g = cv.getContext('2d');
+      const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+      if (kind === 'bloom') {          // pale middle, darker wet rim, like ink spreading on damp paper
+        gr.addColorStop(0, rgba(rgb, 0.22)); gr.addColorStop(0.7, rgba(rgb, 0.42));
+        gr.addColorStop(0.86, rgba(rgb, 0.7)); gr.addColorStop(1, rgba(rgb, 0));
+      } else {
+        gr.addColorStop(0, rgba(rgb, 1)); gr.addColorStop(0.38, rgba(rgb, 0.72));
+        gr.addColorStop(0.72, rgba(rgb, 0.24)); gr.addColorStop(1, rgba(rgb, 0));
+      }
+      g.fillStyle = gr; g.fillRect(0, 0, S, S);
+      return (SPRITES[key] = cv);
+    }
+    function dab(c, spr, x, y, r, a) {
+      if (a <= 0.003 || !(r > 0.3)) return;
+      c.globalAlpha = Math.min(1, a);
+      c.drawImage(spr, x - r, y - r, r * 2, r * 2);
+    }
+
+    // Slow swirling currents in the water the ink drifts through
+    let FLOW_T = 0, WIND = 0, FRAME_DT = 0.016;
+    function flow(x, y) {
+      const t = FLOW_T;
+      return {
+        x: Math.sin(y * 0.021 + t * 0.7) * 16 + Math.cos(x * 0.017 - t * 0.5) * 10 + WIND,
+        y: Math.cos(x * 0.019 + t * 0.6) * 12 + Math.sin(y * 0.015 - t * 0.4) * 6 + 10
+      };
+    }
+    const WISPS = [];
+    function emitWisp(x, y, vx, vy, r, rgb, a, life, grow, kind) {
+      if (WISPS.length > 1800) return;
+      WISPS.push({ x, y, vx, vy, r, a, age: 0, life, grow, spr: inkSprite(rgb, kind || 'soft') });
+    }
+    function drawWisps(c, dt) {
+      for (let i = WISPS.length - 1; i >= 0; i--) {
+        const w = WISPS[i];
+        w.age += dt;
+        if (w.age >= w.life) { WISPS[i] = WISPS[WISPS.length - 1]; WISPS.pop(); continue; }
+        const f = flow(w.x, w.y);
+        const drag = Math.exp(-dt * 2.2);
+        w.vx = w.vx * drag + f.x * (1 - drag);
+        w.vy = w.vy * drag + f.y * (1 - drag);
+        w.x += w.vx * dt; w.y += w.vy * dt;
+        const k = w.age / w.life;
+        dab(c, w.spr, w.x, w.y, w.r * (1 + k * w.grow), w.a * (1 - k) * (1 - k * 0.4));
+      }
+      c.globalAlpha = 1;
+    }
+
+    // Which feeling a pose plays — drives gestures, reactions and the ink itself
+    const EMO_BY_POSE = {
+      rage: 'anger', skyRage: 'anger', kneelCurse: 'anger', strike: 'anger', defy: 'anger', command: 'anger',
+      point: 'anger', gouge: 'anger', pluck: 'anger', duel: 'anger',
+      plead: 'grief', beg: 'grief', kneelGrief: 'grief', clutchHead: 'grief', howl: 'grief', feather: 'grief',
+      pray: 'grief', kneelPoint: 'grief', turnAway: 'grief', sitPlead: 'grief', carry: 'grief',
+      kiss: 'tender', embrace: 'tender', takeHand: 'tender', kneelEmbrace: 'tender', touchFace: 'tender', wake: 'tender', captive: 'tender', guide: 'tender',
+      whisper: 'scheme', hideLetter: 'scheme', holdLetter: 'scheme', strut: 'scheme', readLetter: 'scheme',
+      cower: 'fear', shiver: 'fear', rave: 'fear', blindWalk: 'fear', leadBlind: 'fear', boundChair: 'fear', tearClothes: 'fear', weedCrown: 'fear'
+    };
+    const AGITATION = { anger: 1, fear: 0.7, grief: 0.35, scheme: 0.2, tender: 0.1, neutral: 0.15 };
+    const RED_POOL = new Set(['oswald', 'edmund', 'oldman', 'goneril', 'cornwall']);
+    let camPunch = 0;
 
     // =====================================================================
     //  POSE LIBRARY
@@ -1120,6 +1441,16 @@
         this.onStage = false;
         this.wp = null;
         this.poseName = 'stand';
+        this.imp = {}; this.queue = [];
+        this.stepOff = 0; this.agitation = 0; this.emo = 'neutral';
+        this.emPrev = {}; this.emAcc = {}; this.poolAmt = 0;
+        this.trails = {}; this.trailClock = 0;
+      }
+      kick(d) {
+        for (const k in d) {
+          const lim = k === 'sway' ? 8 : 1.2;
+          this.imp[k] = clamp((this.imp[k] || 0) + d[k], -lim, lim);
+        }
       }
       wing() {
         // Exits walk right off the edge of the stage
@@ -1137,6 +1468,28 @@
         if (st) { tx = st.x; ty = st.y; pose = st.p || 'stand'; this.to = st.to || null; }
         else { const w = this.wing(); tx = w.x; ty = w.y; pose = this.isDead ? 'fallen' : 'stand'; this.to = null; }
         if (!POSES[pose]) pose = 'stand';
+        if (info.snap) { this.imp = {}; this.queue = []; this.stepOff = 0; this.emPrev = {}; this.trails = {}; }
+
+        // Feeling of the moment
+        this.emo = EMO_BY_POSE[pose] || 'neutral';
+        const agT = AGITATION[this.emo] * (this.speaking ? 1 : 0.55);
+        this.agitation = lerp(this.agitation, agT, 1 - Math.exp(-dt * 2));
+        // Ink pools spread slowly beneath the fallen
+        if (st && pose === 'fallen') this.poolAmt = info.snap ? 1 : Math.min(1, this.poolAmt + dt / 7);
+        else this.poolAmt = info.snap ? 0 : Math.max(0, this.poolAmt - dt * 0.8);
+
+        // Speakers step in on hard words and give ground in grief
+        if (st && !NO_WALK.has(pose) && pose !== 'carried') {
+          const pid = this.to || (this.speaking ? info.partner : null);
+          const po = pid && BY_ID[pid];
+          if (po && po.onStage && Math.abs(tx - po.x) > 0.09 && Math.abs(this.stepOff) > 0.0005) {
+            const dir = Math.sign(po.x - tx) || 1;
+            let nx = tx + dir * this.stepOff;
+            if (Math.abs(nx - po.x) < 0.07) nx = po.x - dir * 0.07;
+            tx = clamp(nx, 0.04, 0.96);
+          }
+        }
+        this.stepOff *= Math.exp(-dt * 0.35);
 
         // Carried bodies ride in the carrier's arms
         if (pose === 'carried') {
@@ -1145,6 +1498,12 @@
           if (carrier) { tx = carrier.x; ty = carrier.y + 0.002; }
         } else this.carrier = null;
         this.poseName = pose;
+
+        // Phantoms appear where they stand and vanish without walking off
+        const ghostNow = !!(st && st.ghost);
+        if (ghostNow && !this.wasGhost) { this.x = tx; this.y = ty; this.opacity = 0; }
+        if (!st && this.wasGhost) { const w = this.wing(); this.x = w.x; this.y = w.y; this.opacity = 0; tx = w.x; ty = w.y; }
+        this.wasGhost = ghostNow;
 
         // --- Movement (walk to the mark at a human pace)
         const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
@@ -1181,11 +1540,21 @@
           if (tgt.free) { tgt.fA -= 0.3 * sn(a) * w; tgt.bA += 0.3 * sn(a) * w; }
           tgt.lean += 0.05 * w;
         }
+        // Breath, beats and reactions
+        if (!tgt.grounded) tgt.lean += 0.014 * sn(t * 1.5 + this.ph);
+        if (this.queue.length) {
+          const due = this.queue.filter(q => t >= q.at);
+          if (due.length) { this.queue = this.queue.filter(q => t < q.at); due.forEach(q => this.kick(q.d)); }
+        }
+        for (const k in this.imp) {
+          tgt[k] = (tgt[k] || 0) + this.imp[k];
+          this.imp[k] *= Math.exp(-dt * 4.2);
+        }
         // Wind leans everyone on the heath
         if (info.storm > 0.55 && !tgt.grounded) tgt.lean += -0.09 * info.storm * (0.6 + 0.4 * sn(t * 0.8 + this.ph)) * Math.sign(this.face || 1);
 
         // --- Interpolate joints (this is what makes the motion fluid)
-        const kk = info.snap ? 1 : 1 - Math.exp(-dt * 7);
+        const kk = info.snap ? 1 : 1 - Math.exp(-dt * 8);
         for (const key of JOINTS) {
           const k = key === 'fall' ? (info.snap ? 1 : 1 - Math.exp(-dt * 5)) : kk;
           this.j[key] = lerp(this.j[key], tgt[key] || 0, k);
@@ -1218,7 +1587,7 @@
         this.face = info.snap ? tf : lerp(this.face, tf, 1 - Math.exp(-dt * 6));
 
         // --- Visibility
-        let ta = st ? 1 : (this.isDead ? 0 : 1);
+        let ta = st ? (st.ghost ? 0.3 + 0.08 * sn(t * 2.3 + this.ph) : 1) : (this.isDead ? 0 : 1);
         if (this.extra) ta = st ? 0.42 : 0;
         this.opacity = info.snap ? ta : lerp(this.opacity, ta, 1 - Math.exp(-dt * 4));
 
@@ -1317,11 +1686,22 @@
         const rgb = this.rgb;
         const j = this.j;
 
-        // Ground shadow
+        // Threads of ink trailing from hands and robe, drifting in the current
+        if (!this.carrier) this.drawTrails(c, s);
+
+        // Ground shadow, and the ink pool spreading under the fallen
         if (!this.carrier) {
           c.save(); c.translate(this.ox, this.oy); c.scale(1, 0.32);
-          drawInkWash(c, 0, 0, (22 + Math.abs(j.fall) * 20) * s, rgb, alpha * 0.28);
+          drawInkWash(c, 0, 0, (22 + Math.abs(j.fall) * 20) * s, rgb, alpha * 0.24);
           c.restore();
+          if (this.poolAmt > 0.01 && this.wp) {
+            const pc = RED_POOL.has(this.id) || this.extra ? [96, 12, 14] : rgb;
+            const px = (this.wp.H.x + this.ox) / 2, py = this.oy + 2 * s;
+            c.save(); c.translate(px, py); c.scale(1, 0.34);
+            dab(c, inkSprite(pc, 'bloom'), sn(t * 0.3 + this.ph) * 2, 0, (16 + 40 * this.poolAmt) * s, 0.62 * this.poolAmt * alpha);
+            dab(c, inkSprite(pc, 'soft'), 0, 0, (8 + 22 * this.poolAmt) * s, 0.35 * this.poolAmt * alpha);
+            c.restore(); c.globalAlpha = 1;
+          }
         }
 
         c.save();
@@ -1333,9 +1713,56 @@
           if (Math.abs(a) > 0.001) { c.translate(0, -Math.abs(j.fall) * 6); c.translate(0, -4); c.rotate(a); c.translate(0, 4); }
         }
 
+        // Where the robe or the feet meet the floor
+        const footPts = [L.fF, L.bF, L.fK, L.bK];
+        const hx0 = Math.min(...footPts.map(p => p.x)) - 7, hx1 = Math.max(...footPts.map(p => p.x)) + 7;
+        const hemY = Math.max(...footPts.map(p => p.y)) + 1;
+
+        // Ink bleeding out of the figure into the water around it
+        const halo = inkSprite(rgb, 'soft');
+        const ag = this.agitation;
+        const bones = this.gown
+          ? [[L.hip, L.S, 13], [L.S, L.H, 8], [L.fSh, L.fE, 6], [L.fE, L.fHn, 5], [L.bSh, L.bE, 5], [L.bE, L.bHn, 4], [L.hip, { x: (hx0 + hx1) / 2, y: hemY - 4 }, 16]]
+          : [[L.hip, L.S, 12], [L.S, L.H, 8], [L.fSh, L.fE, 6], [L.fE, L.fHn, 5], [L.bSh, L.bE, 5], [L.bE, L.bHn, 4], [L.hip, L.fK, 7], [L.fK, L.fF, 5], [L.hip, L.bK, 7], [L.bK, L.bF, 5]];
+        let bi = 0;
+        for (const [a, b, w] of bones) {
+          for (let q = 0; q <= 2; q++) {
+            const u = q / 2, n = bi * 3 + q;
+            const wob = 1.6 + ag * 2.2;
+            dab(c, halo,
+              lerp(a.x, b.x, u) + sn(t * (1.3 + ag) + n * 2.1 + this.ph) * wob,
+              lerp(a.y, b.y, u) + cs(t * (1.1 + ag) + n * 1.7 + this.ph) * wob,
+              w * (1.75 + 0.3 * sn(t * 0.9 + n)), alpha * 0.11);
+          }
+          bi++;
+        }
+        dab(c, halo, L.H.x + sn(t * 0.8 + this.ph), L.H.y, 15 + sn(t + this.ph) * 1.5, alpha * 0.11);
+        c.globalAlpha = 1;
+
         const props = this.tgt && this.tgt.prop;
-        const tom = this.id === 'edgar' && T >= (FX_TIME.tom || 3780) && T < 7420;
+        const tom = this.id === 'edgar' && T >= (FX_TIME.tom || SCENES[13].start + 60) && T < SCENES[25].start;
         const lineW = 1;
+
+        // A cape streaming behind, pulled by movement and wind
+        const capeRgb = this.capeFor(T);
+        if (capeRgb && !this.carrier && Math.abs(j.fall) < 0.5) {
+          const vLocal = this.vx * Math.sign(this.face || 1);
+          const trail = 8 + Math.max(0, vLocal) * 260 + BY_STORM * (10 + 8 * sn(t * 3.1 + this.ph)) + this.agitation * 4 * sn(t * 4 + this.ph);
+          const fl = sn(t * 2.4 + this.ph) * 2;
+          const torn = this.id === 'lear' && T >= SCENES[15].start;
+          const gc = c.createLinearGradient(0, L.S.y, 0, hemY);
+          gc.addColorStop(0, rgba(capeRgb, alpha * 0.95)); gc.addColorStop(1, rgba(capeRgb, alpha * 0.55));
+          c.fillStyle = gc;
+          c.beginPath();
+          c.moveTo(L.S.x + 2, L.S.y - 1);
+          c.quadraticCurveTo(L.hip.x - 2, L.hip.y - 8, hx0 + 4, hemY - 1);
+          if (torn) {
+            for (let q = 0; q < 6; q++) c.lineTo(hx0 + 4 - (trail + 6) * (q / 5) + (q % 2) * 3, hemY - 2 - (q % 2 ? 7 : 0) - trail * 0.3 * (q / 5));
+          } else c.quadraticCurveTo(hx0 - trail * 0.5, hemY + 2, hx0 - 2 - trail, hemY - 3 - trail * 0.32 + fl);
+          c.quadraticCurveTo(L.S.x - 12 - trail * 0.55, (L.S.y + hemY) / 2 + fl, L.S.x - 5, L.S.y + 1);
+          c.closePath(); c.fill();
+          if (this.id === 'lear' && !torn) { c.strokeStyle = rgba([196, 160, 70], alpha * 0.7); c.lineWidth = 1.4; c.stroke(); }
+        }
 
         // Chair behind sitters
         if (props === 'chair') {
@@ -1360,11 +1787,13 @@
 
         // Body
         if (this.gown) {
-          const pts = [L.fF, L.bF, L.fK, L.bK];
-          const hx0 = Math.min(...pts.map(p => p.x)) - 7, hx1 = Math.max(...pts.map(p => p.x)) + 7;
-          const hemY = Math.max(...pts.map(p => p.y)) + 1;
           const flutter = sn(t * 2.3 + this.ph) * 1.5;
-          c.fillStyle = rgba(rgb, alpha * 0.86);
+          // The robe thins out toward the hem and dissolves into the water
+          const gg = c.createLinearGradient(0, L.S.y, 0, hemY + 3);
+          gg.addColorStop(0, rgba(rgb, alpha * 0.9));
+          gg.addColorStop(0.55, rgba(rgb, alpha * 0.78));
+          gg.addColorStop(1, rgba(rgb, alpha * 0.2));
+          c.fillStyle = gg;
           c.beginPath();
           c.moveTo(L.S.x - 7, L.S.y + 1);
           c.quadraticCurveTo(L.hip.x - 10, L.hip.y - 6, hx0 + flutter, hemY);
@@ -1372,6 +1801,18 @@
           c.quadraticCurveTo(L.hip.x + 10, L.hip.y - 6, L.S.x + 7, L.S.y + 1);
           c.closePath();
           c.fill();
+          // Gold trim on royal robes
+          const ct = this.crownFor(T);
+          if (ct === 'king' || ct === 'coronet') {
+            c.strokeStyle = rgba([186, 146, 52], alpha * 0.75); c.lineWidth = 1.5;
+            c.beginPath(); c.moveTo(hx0 + flutter + 1, hemY - 2); c.quadraticCurveTo((hx0 + hx1) / 2, hemY + 1, hx1 + flutter - 1, hemY - 2); c.stroke();
+            c.beginPath(); c.moveTo(L.S.x - 6, L.S.y + 2); c.quadraticCurveTo(L.S.x, L.S.y + 6, L.S.x + 6, L.S.y + 2); c.stroke();
+          }
+          for (let k = 0; k <= 4; k++) {
+            dab(c, halo, lerp(hx0, hx1, k / 4) + sn(t * 1.4 + k * 2.3 + this.ph) * 2, hemY - 1 + cs(t * 1.7 + k * 1.3 + this.ph) * 2.5,
+              6 + 1.8 * sn(t * 1.2 + k), alpha * 0.2);
+          }
+          c.globalAlpha = 1;
           // Folds
           drawBrushStroke(c, L.hip.x + 2, L.hip.y, (L.fK.x + L.fF.x) / 2 + 2, hemY - 2, 1.5, 0.6, [241, 236, 225], alpha * 0.18);
           drawBrushStroke(c, L.hip.x - 3, L.hip.y, (L.bK.x + L.bF.x) / 2 - 2, hemY - 2, 1.5, 0.6, [241, 236, 225], alpha * 0.14);
@@ -1421,7 +1862,29 @@
         const eye = hp(4.2, 1.8);
         const blindFull = this.id === 'gloucester' && T >= (FX_TIME.blind || 1e9);
         const blindHalf = this.id === 'gloucester' && T >= (FX_TIME.blind1 || 1e9);
-        if (!blindHalf) dot(c, eye.x, eye.y, 1.6, [241, 236, 225], alpha * 0.92);
+        const PAPER = [241, 236, 225];
+        const emo = this.emo;
+        const lifeless = this.poseName === 'fallen' || this.poseName === 'carried' || this.poseName === 'sleep';
+        const blink = ((t * 0.23 + this.ph * 0.37) % 1) < 0.03;
+        if (!blindHalf) {
+          if (lifeless || blink) stroke(c, hp(2.6, 1.6), hp(5.8, 1.4), 1.3, 1.1, PAPER, alpha * 0.75);
+          else {
+            const er = emo === 'fear' ? 2.15 : emo === 'anger' ? 1.35 : emo === 'grief' ? 1.45 : 1.65;
+            dot(c, eye.x, eye.y, er, PAPER, alpha * 0.94);
+            const pu = hp(4.2 + er * 0.35, 1.8 - (emo === 'grief' ? 0.4 : 0));
+            dot(c, pu.x, pu.y, er * 0.42, [14, 14, 18], alpha * 0.95);
+          }
+        }
+        if (!lifeless) {
+          const BROWS = { anger: [2.4, 4.7, 7.4, 2.6], grief: [2.2, 3.0, 7.0, 4.7], fear: [2.4, 5.0, 7.2, 5.3], scheme: [2.6, 3.8, 7.6, 3.2], tender: [2.6, 3.9, 7.2, 4.4], neutral: [2.6, 4.0, 7.2, 4.1] };
+          const bw = BROWS[emo] || BROWS.neutral;
+          stroke(c, hp(bw[0], bw[1]), hp(bw[2], bw[3]), emo === 'anger' ? 1.7 : 1.15, 0.8, PAPER, alpha * 0.72);
+          if (this.jaw <= 0.05 && !this.beard) {
+            const MOUTH = { grief: [5.4, -4.9, 7.6, -3.7], tender: [5.6, -3.5, 7.8, -4.1], scheme: [5.4, -3.6, 7.8, -4.3], anger: [5.6, -4.0, 7.8, -4.0], fear: [6.2, -4.2, 7.6, -4.4], neutral: [5.8, -4.0, 7.6, -3.9] };
+            const mw = MOUTH[emo] || MOUTH.neutral;
+            stroke(c, hp(mw[0], mw[1]), hp(mw[2], mw[3]), 1.0, 0.7, PAPER, alpha * 0.5);
+          }
+        }
         if (blindHalf) {
           const a1 = hp(-6, 2.5), a2 = hp(9, 1.5);
           stroke(c, blindFull ? a1 : hp(1, 2.5), a2, 4.5, 4, [130, 16, 16], alpha);
@@ -1483,7 +1946,7 @@
         // Hand props
         const fH = L.fHn, bH = L.bHn, ang = L.fBang;
         if (props === 'sword') {
-          const cudgel = this.id === 'edgar' && T >= 3720 && T < 9805;
+          const cudgel = this.id === 'edgar' && T >= SCENES[13].start && T < SCENES[30].start;
           const a2 = ang + 0.35;
           const tip = { x: fH.x + sn(a2) * (cudgel ? 22 : 32), y: fH.y + cs(a2) * (cudgel ? 22 : 32) };
           if (cudgel) stroke(c, fH, tip, 3, 5, [70, 48, 26], alpha);
@@ -1524,7 +1987,26 @@
         c.restore();
 
         // Cache world-space joints for others to reach toward
-        this.wp = { S: this.toWorld(L.S), H: this.toWorld(L.H), fHn: this.toWorld(L.fHn), bHn: this.toWorld(L.bHn), mouth: this.toWorld(hp(9, -3)) };
+        this.wp = { S: this.toWorld(L.S), H: this.toWorld(L.H), fHn: this.toWorld(L.fHn), bHn: this.toWorld(L.bHn), mouth: this.toWorld(hp(9, -3)), eye: this.toWorld(eye) };
+
+        // Ink trails streaming off hands, head and hem as the figure moves
+        if (this.onStage && alpha > 0.3 && !this.carrier && simRunning) {
+          const em = [
+            ['f', this.wp.fHn, 'hand'], ['b', this.wp.bHn, 'hand'], ['h', this.wp.H, 'head'],
+            ['l', this.toWorld(this.gown ? { x: hx0 + 3, y: hemY } : L.fF), 'hem'],
+            ['r', this.toWorld(this.gown ? { x: hx1 - 3, y: hemY } : L.bF), 'hem']
+          ];
+          for (const [k, p, kind] of em) this.emitInk(k, p, kind, s);
+          this.recordTrails(em);
+          const dt = FRAME_DT;
+          if (this.emo === 'grief' && (this.speaking || this.agitation > 0.25) && Math.random() < dt * 1.8) {
+            emitWisp(this.wp.eye.x, this.wp.eye.y, (Math.random() - 0.5) * 6, 50, 1.4 * s, [18, 20, 28], 0.6, 1.3, 0.8, 'soft');
+          }
+          if (this.emo === 'tender' && Math.random() < dt * 1.3) {
+            const hp2 = this.ikW.f > 0.5 ? this.wp.fHn : this.wp.S;
+            emitWisp(hp2.x, hp2.y, 0, -4, 3 * s, rgb, 0.22, 2.2, 5, 'bloom');
+          }
+        }
         if (this.carrier) {
           const cw = (p) => { const rx = p.x * f * s, ry = p.y * s; return { x: this.ox + rx * cs(1.5) - ry * sn(1.5), y: this.oy + rx * sn(1.5) + ry * cs(1.5) }; };
           this.wp.S = cw(L.S); this.wp.H = cw(L.H);
@@ -1532,10 +2014,78 @@
         this.swordTipWorld = this.swordTipLocal ? this.toWorld(this.swordTipLocal) : null;
       }
 
+      recordTrails(em) {
+        const dt = FRAME_DT;
+        if (dt <= 0) return;
+        const LIFE = 1.6;
+        this.trailClock += dt;
+        const push = this.trailClock >= 0.045;
+        if (push) this.trailClock = 0;
+        for (const [k, p, kind] of em) {
+          if (kind === 'head' || (kind === 'hem' && !this.gown)) continue;
+          const tr = this.trails[k] || (this.trails[k] = []);
+          for (const q of tr) {
+            q.age += dt;
+            const f = flow(q.x, q.y);
+            q.x += f.x * dt * 0.55; q.y += f.y * dt * 0.55;
+          }
+          while (tr.length && tr[0].age > LIFE) tr.shift();
+          const last = tr[tr.length - 1];
+          if (last && Math.hypot(p.x - last.x, p.y - last.y) > 400) tr.length = 0;
+          if (push) tr.push({ x: p.x, y: p.y, age: 0 });
+          else if (tr.length) { const h = tr[tr.length - 1]; if (h.age < 0.05) { h.x = p.x; h.y = p.y; } }
+        }
+      }
+      drawTrails(c, s) {
+        const LIFE = 1.6;
+        c.lineCap = 'round';
+        for (const k in this.trails) {
+          const tr = this.trails[k];
+          if (tr.length < 2) continue;
+          const wmax = (k === 'l' || k === 'r' ? 3.4 : 2.4) * s * (1 + this.agitation * 0.7);
+          for (let i = 1; i < tr.length; i++) {
+            const a = tr[i - 1], b = tr[i];
+            const life = 1 - a.age / LIFE;
+            if (life <= 0) continue;
+            c.strokeStyle = rgba(this.rgb, 0.34 * life * life * this.opacity);
+            c.lineWidth = wmax * (0.2 + 0.8 * life);
+            c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+          }
+        }
+      }
+
+      emitInk(k, p, kind, s) {
+        const prev = this.emPrev[k];
+        this.emPrev[k] = p;
+        const dt = FRAME_DT;
+        if (!prev || dt <= 0) return;
+        const vx = (p.x - prev.x) / dt, vy = (p.y - prev.y) / dt;
+        const sp = Math.hypot(vx, vy);
+        if (sp > 2500) return;
+        let rate = kind === 'hem' ? (this.gown ? 9 : 3) : kind === 'head' ? 2.5 : 4;
+        rate += Math.min(40, sp / 12) * (kind === 'hand' ? 1 : 0.5);
+        rate *= (1 + this.agitation) * (this.extra ? 0.3 : 1);
+        this.emAcc[k] = (this.emAcc[k] || 0) + rate * dt;
+        while (this.emAcc[k] >= 1) {
+          this.emAcc[k] -= 1;
+          const r = (kind === 'hem' ? 4.5 : 3) * s * (0.7 + Math.random() * 0.6);
+          const a = ((kind === 'hem' ? 0.13 : 0.09) + Math.min(0.16, sp / 2200)) * this.opacity;
+          emitWisp(p.x + (Math.random() - 0.5) * 4 * s, p.y + (Math.random() - 0.5) * 4 * s,
+            -vx * 0.15 + (Math.random() - 0.5) * 20, -vy * 0.15 + (kind === 'hem' ? 12 : 0),
+            r, this.rgb, a, 1.2 + Math.random() * 1.0, kind === 'hem' ? 3.4 : 3.0, 'soft');
+        }
+      }
+
+      capeFor(T) {
+        if (this.id === 'lear') return T < SCENES[18].start ? (T < SCENES[15].start ? [100, 18, 24] : [70, 66, 66]) : null;
+        if (this.id === 'edmund') return T >= SCENES[19].start ? [22, 10, 20] : null;
+        return this.cape || null;
+      }
+
       crownFor(T) {
         if (this.id === 'lear') {
-          if (T < 4880) return 'king';
-          if (T >= 7420 && T < 8490) return 'weeds';
+          if (T < SCENES[16].start) return 'king';
+          if (T >= SCENES[25].start && T < SCENES[27].start) return 'weeds';
           return 'wild';
         }
         return this.crown;
@@ -1543,6 +2093,37 @@
     }
 
     let BY_STORM = 0;
+
+    // A stressed word lands: the speaker gestures, the listeners react
+    function speakerBeat(sp, k, partnerId) {
+      const free = sp.tgt && sp.tgt.free ? 1 : 0.35;
+      const sg = Math.random() < 0.5 ? -1 : 1;
+      const D = {
+        anger:   { fA: 0.75 * free, fB: 0.6 * free, lean: 0.14, head: -0.12 },
+        grief:   { head: 0.22, lean: 0.1, sway: 1.6 * sg },
+        tender:  { lean: 0.08, head: 0.12, fA: 0.2 * free },
+        scheme:  { head: 0.16 * sg, lean: -0.06, fB: 0.3 * free },
+        fear:    { sway: 3 * sg, head: -0.16, lean: -0.08 },
+        neutral: { fA: 0.45 * free, fB: 0.55 * free, head: 0.08 * sg, lean: 0.05 }
+      }[sp.emo];
+      const d = {};
+      for (const key in D) d[key] = D[key] * k;
+      sp.kick(d);
+      if (sp.emo === 'anger') { sp.stepOff = clamp(sp.stepOff + 0.012 * k, -0.05, 0.05); camPunch = Math.min(0.12, camPunch + 0.035 * k); }
+      else if (sp.emo === 'grief') sp.stepOff = clamp(sp.stepOff - 0.005 * k, -0.05, 0.05);
+      else if (sp.emo === 'tender') sp.stepOff = clamp(sp.stepOff + 0.003 * k, -0.05, 0.05);
+      for (const p of PUPPETS) {
+        if (p === sp || !p.onStage || p.extra || p.opacity < 0.3 || Math.abs(p.x - sp.x) > 0.35) continue;
+        const wt = (p.id === partnerId ? 1 : 0.45) * k;
+        let r = null;
+        if (sp.emo === 'anger' && k >= 0.45) r = { lean: -0.17 * wt, head: -0.15 * wt };
+        else if (sp.emo === 'grief') r = { head: 0.1 * wt, lean: 0.04 * wt };
+        else if (sp.emo === 'tender' && p.id === partnerId) r = { lean: 0.07 * wt, head: 0.1 * wt };
+        else if (sp.emo === 'fear') r = { head: -0.06 * wt };
+        else if (k >= 0.6) r = { head: 0.08 * wt * (Math.random() < 0.5 ? -1 : 1) };
+        if (r) p.queue.push({ at: elapsed + 0.12 + Math.random() * 0.15, d: r });
+      }
+    }
     const PUPPETS = CAST_SPECS.map((spec, idx) => new InkPuppet(spec, idx));
     PUPPETS.forEach(p => BY_ID[p.id] = p);
 
@@ -1564,6 +2145,10 @@
       const bs = baseScale;
       if (props.includes('map')) {
         const cx = W * 0.5, cy = H * 0.63, w = Math.min(260 * bs, W * 0.55), h = w * 0.34;
+        const k1 = T >= (FX_TIME.divide2 || 1e9) ? clamp((T - FX_TIME.divide2) / 2.5, 0, 1) : 0;
+        const k2 = T >= (FX_TIME.tearMid || 1e9) ? clamp((T - FX_TIME.tearMid) / 2, 0, 1) : 0;
+        const ease = (k) => k * k * (3 - 2 * k);
+        const paintMap = () => {
         c.save();
         c.fillStyle = 'rgba(228, 216, 190, 0.85)';
         c.beginPath();
@@ -1582,6 +2167,25 @@
         if (T >= (FX_TIME.divide1 || 1e9)) drawBrushStroke(c, cx - w * 0.14, cy - h * 0.5, cx - w * 0.17, cy + h * 0.5, 3, 2, [130, 20, 20], 0.85);
         if (T >= (FX_TIME.divide2 || 1e9)) drawBrushStroke(c, cx + w * 0.14, cy - h * 0.5, cx + w * 0.17, cy + h * 0.5, 3, 2, [130, 20, 20], 0.85);
         c.restore();
+        };
+        const part = (x0, x1, dx, dy, rot, alpha) => {
+          c.save(); c.globalAlpha = alpha;
+          c.translate(cx + dx, cy + dy); c.rotate(rot); c.translate(-cx, -cy);
+          c.beginPath(); c.rect(x0, cy - h * 2, x1 - x0, h * 4); c.clip();
+          paintMap();
+          c.restore(); c.globalAlpha = 1;
+        };
+        if (k1 <= 0) paintMap();
+        else {
+          const e1 = ease(k1), e2 = ease(k2), sp = 10 * bs * e1, c1 = cx - w * 0.155, c2 = cx + w * 0.155;
+          part(-1e5, c1, -sp, 0, -0.035 * e1, 1);
+          part(c2, 1e5, sp, 0, 0.035 * e1, 1);
+          if (k2 <= 0) part(c1, c2, 0, 2 * bs * e1, 0, 1);
+          else {
+            part(c1, cx, -sp - 16 * bs * e2, 8 * bs * e2, -0.16 * e2, 1 - 0.35 * e2);
+            part(cx, c2, sp + 16 * bs * e2, 8 * bs * e2, 0.16 * e2, 1 - 0.35 * e2);
+          }
+        }
       }
       if (props.includes('coronet')) {
         const a = BY_ID.albany, b = BY_ID.cornwall;
@@ -1618,9 +2222,622 @@
     }
 
     // =====================================================================
+    //  SCENERY — an ink-wash backdrop painted once for each location,
+    //  plus a living layer (clouds, torchlight, sea, smoke) and a mood tint
+    // =====================================================================
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    const SCENE_SET = ['court', 'court', 'court', 'court', 'court', 'court', 'study', 'hall', 'hall', 'hall', 'hall',
+      'night', 'yard', 'woods', 'yard', 'heath', 'heath', 'night', 'heath', 'night', 'farm', 'night', 'moor', 'hall',
+      'camp', 'dover', 'dover', 'tent', 'battle', 'prison', 'prison', 'prison'];
+    const MOODS = {
+      court:  { tint: [205, 160, 70], a: 0.10, vig: 0.16 },
+      study:  { tint: [175, 135, 80], a: 0.10, vig: 0.24 },
+      hall:   { tint: [150, 115, 85], a: 0.11, vig: 0.24 },
+      night:  { tint: [40, 55, 100], a: 0.26, vig: 0.42 },
+      yard:   { tint: [115, 108, 112], a: 0.14, vig: 0.28 },
+      woods:  { tint: [60, 92, 60], a: 0.17, vig: 0.34 },
+      heath:  { tint: [58, 72, 100], a: 0.26, vig: 0.44 },
+      moor:   { tint: [112, 116, 120], a: 0.12, vig: 0.26 },
+      farm:   { tint: [165, 102, 40], a: 0.17, vig: 0.4 },
+      camp:   { tint: [110, 135, 172], a: 0.09, vig: 0.18 },
+      tent:   { tint: [205, 172, 120], a: 0.11, vig: 0.22 },
+      dover:  { tint: [140, 176, 192], a: 0.11, vig: 0.14 },
+      battle: { tint: [155, 72, 40], a: 0.19, vig: 0.34 },
+      prison: { tint: [70, 70, 88], a: 0.2, vig: 0.4 }
+    };
+
+    function rng(seed) {
+      return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    }
+
+    function paintSet(name, W, H, GY) {
+      const X0 = -0.45 * W, X1 = 1.45 * W, Y0 = GY - 1.15 * H, Y1 = GY + 0.9 * H;
+      const sc = W * H > 900000 ? 0.7 : 1;
+      const cv = document.createElement('canvas');
+      cv.width = Math.ceil((X1 - X0) * sc); cv.height = Math.ceil((Y1 - Y0) * sc);
+      const g = cv.getContext('2d');
+      g.scale(sc, sc); g.translate(-X0, -Y0);
+      const R = rng(name.length * 977 + 13);
+      const meta = { glows: [], name };
+      const bs = (x1, y1, x2, y2, w1, w2, rgb, a) => drawBrushStroke(g, x1, y1, x2, y2, w1, w2, rgb, a);
+      const wash = (x, y, w, h, rgb, a0, a1) => {
+        const gr = g.createLinearGradient(0, y, 0, y + h);
+        gr.addColorStop(0, rgba(rgb, a0)); gr.addColorStop(1, rgba(rgb, a1));
+        g.fillStyle = gr; g.fillRect(x, y, w, h);
+      };
+      const cloud = (x, y, r, rgb, a) => { dab(g, inkSprite(rgb, 'soft'), x, y, r, a); g.globalAlpha = 1; };
+      const ridge = (yb, amp, freq, rgb, a, seed) => {
+        const r2 = rng(seed);
+        const ph = [r2() * 9, r2() * 9, r2() * 9];
+        g.beginPath(); g.moveTo(X0, Y1);
+        for (let x = X0; x <= X1; x += 12) {
+          const y = yb - amp * (0.55 + 0.25 * Math.sin(x * freq + ph[0]) + 0.15 * Math.sin(x * freq * 2.7 + ph[1]) + 0.08 * Math.sin(x * freq * 7.1 + ph[2]));
+          g.lineTo(x, y);
+        }
+        g.lineTo(X1, Y1); g.closePath();
+        const gr = g.createLinearGradient(0, yb - amp, 0, yb + H * 0.25);
+        gr.addColorStop(0, rgba(rgb, a)); gr.addColorStop(0.5, rgba(rgb, a * 0.55)); gr.addColorStop(1, rgba(rgb, 0));
+        g.fillStyle = gr; g.fill();
+      };
+      const floor = (rgb, a) => wash(X0, GY - 4, X1 - X0, H * 0.6, rgb, a, 0);
+      const backWall = (rgb, a) => wash(X0, GY - 0.75 * H, X1 - X0, 0.75 * H, rgb, 0, a);
+      const pillar = (x, h, w, rgb, a) => {
+        bs(x, GY - 4, x, GY - h, w, w * 0.86, rgb, a);
+        bs(x + w * 0.28, GY - 4, x + w * 0.28, GY - h, w * 0.3, w * 0.25, [30, 24, 20], a * 0.5);
+        bs(x - w * 0.95, GY - h, x + w * 0.95, GY - h, 9, 9, rgb, a * 1.1);
+        bs(x - w * 0.8, GY - h + 10, x + w * 0.8, GY - h + 10, 4, 4, rgb, a);
+        bs(x - w * 0.85, GY - 6, x + w * 0.85, GY - 6, 8, 8, rgb, a * 1.1);
+      };
+      const banner = (x, top, len, rgb, emblem) => {
+        bs(x - 16, top, x + 16, top, 4, 4, [60, 45, 30], 0.5);
+        bs(x, top, x, top + len, 22, 20, rgb, 0.42);
+        bs(x - 10, top + len, x - 3, top + len + 22, 7, 1, rgb, 0.42);
+        bs(x + 10, top + len, x + 3, top + len + 22, 7, 1, rgb, 0.42);
+        if (emblem) { dab(g, inkSprite(emblem, 'soft'), x, top + len * 0.35, 7, 0.9); g.globalAlpha = 1; }
+      };
+      const archWay = (cx, w, h, rgb, a, inner) => {
+        g.beginPath();
+        g.moveTo(cx - w / 2, GY - 2); g.lineTo(cx - w / 2, GY - h + w / 2);
+        g.arc(cx, GY - h + w / 2, w / 2, Math.PI, 0); g.lineTo(cx + w / 2, GY - 2);
+        if (inner) { g.fillStyle = rgba(inner, 0.12); g.fill(); }
+        g.strokeStyle = rgba(rgb, a); g.lineWidth = 13; g.stroke();
+        g.strokeStyle = rgba(rgb, a * 0.5); g.lineWidth = 4;
+        g.beginPath(); g.moveTo(cx - w / 2 + 12, GY - 2); g.lineTo(cx - w / 2 + 12, GY - h + w / 2);
+        g.arc(cx, GY - h + w / 2, w / 2 - 12, Math.PI, 0); g.lineTo(cx + w / 2 - 12, GY - 2); g.stroke();
+      };
+      const tree = (x, h, lean, rgb, a, seed, foliage) => {
+        const r2 = rng(seed);
+        const branch = (x1, y1, ang, len, w, depth) => {
+          const x2 = x1 + Math.sin(ang) * len, y2 = y1 - Math.cos(ang) * len;
+          bs(x1, y1, x2, y2, w, w * 0.6, rgb, a);
+          if (depth <= 0 || len < 8) { if (foliage) cloud(x2, y2, 16 + r2() * 16, foliage, 0.16); return; }
+          const n = 2 + (r2() < 0.4 ? 1 : 0);
+          for (let i = 0; i < n; i++) branch(x2, y2, ang + (r2() - 0.5) * 1.3 + lean * 0.3, len * (0.6 + r2() * 0.2), w * 0.62, depth - 1);
+        };
+        branch(x, GY, lean, h * 0.42, h * 0.07, 4);
+      };
+      const tent = (cx, w, h, rgb, pennant) => {
+        g.beginPath(); g.moveTo(cx - w / 2, GY - 2); g.quadraticCurveTo(cx - w * 0.2, GY - h * 0.55, cx, GY - h);
+        g.quadraticCurveTo(cx + w * 0.2, GY - h * 0.55, cx + w / 2, GY - 2); g.closePath();
+        const gr = g.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+        gr.addColorStop(0, rgba(rgb, 0.3)); gr.addColorStop(0.5, rgba(rgb, 0.16)); gr.addColorStop(1, rgba(rgb, 0.34));
+        g.fillStyle = gr; g.fill();
+        g.strokeStyle = rgba([40, 36, 30], 0.35); g.lineWidth = 2.5; g.stroke();
+        g.fillStyle = rgba([20, 20, 24], 0.25);
+        g.beginPath(); g.moveTo(cx - w * 0.1, GY - 2); g.lineTo(cx, GY - h * 0.45); g.lineTo(cx + w * 0.1, GY - 2); g.fill();
+        bs(cx, GY - h, cx, GY - h - 30, 2.5, 2, [50, 40, 30], 0.6);
+        if (pennant) { g.fillStyle = rgba(pennant, 0.6); g.beginPath(); g.moveTo(cx, GY - h - 30); g.lineTo(cx + 26, GY - h - 24); g.lineTo(cx, GY - h - 17); g.fill(); }
+      };
+      const stoneRows = (top, bottom, rgb, a) => {
+        for (let y = top; y < bottom; y += 22) {
+          bs(X0, y, X1, y, 1.2, 1.2, rgb, a);
+          const off = ((y - top) / 22) % 2 ? 0 : 24;
+          for (let x = X0 + off; x < X1; x += 48) bs(x, y, x, Math.min(y + 22, bottom), 1, 1, rgb, a * 0.8);
+        }
+      };
+
+      if (name === 'court') {
+        backWall([120, 92, 58], 0.12);
+        floor([110, 85, 55], 0.12);
+        for (let k = -9; k <= 9; k++) bs(W * 0.5 + k * W * 0.045, GY, W * 0.5 + k * W * 0.3, GY + H * 0.6, 1.4, 2.6, [90, 70, 45], 0.07);
+        for (let i = 0; i < 8; i++) { const x = -0.33 * W + i * 0.27 * W; if (Math.abs(x - 0.5 * W) < 0.16 * W) continue; pillar(x, 0.66 * H, 30, [78, 62, 44], 0.3); }
+        for (let i = 0; i < 7; i++) { const x = -0.2 * W + i * 0.27 * W; if (Math.abs(x - 0.5 * W) < 0.1 * W) continue; banner(x, GY - 0.6 * H, 0.26 * H, [118, 22, 24], [190, 150, 50]); }
+        // Throne on its dais
+        const cx = W * 0.5;
+        for (let k = 0; k < 3; k++) bs(cx - 110 + k * 22, GY - 4 - k * 9, cx + 110 - k * 22, GY - 4 - k * 9, 9, 9, [70, 52, 34], 0.32);
+        bs(cx, GY - 30, cx, GY - 0.36 * H, 46, 38, [74, 40, 28], 0.4);
+        bs(cx - 30, GY - 40, cx + 30, GY - 40, 10, 10, [74, 40, 28], 0.45);
+        for (const k of [-14, 0, 14]) bs(cx + k, GY - 0.36 * H, cx + k * 1.2, GY - 0.36 * H - (k ? 18 : 28), 6, 2, [170, 128, 40], 0.75);
+        bs(cx - 24, GY - 0.36 * H, cx + 24, GY - 0.36 * H, 6, 6, [170, 128, 40], 0.75);
+        meta.glows.push({ x: W * 0.12, y: GY - 0.38 * H, r: 70, rgb: [230, 160, 70], a: 0.12 }, { x: W * 0.88, y: GY - 0.38 * H, r: 70, rgb: [230, 160, 70], a: 0.12 });
+      } else if (name === 'hall') {
+        backWall([110, 90, 70], 0.14);
+        floor([100, 80, 60], 0.13);
+        for (let i = 0; i < 6; i++) archWay(-0.25 * W + i * 0.37 * W, 0.2 * W, 0.56 * H, [72, 60, 48], 0.3, [40, 34, 30]);
+        for (let i = 0; i < 5; i++) {
+          const x = -0.06 * W + i * 0.37 * W;
+          wash(x - 34, GY - 0.52 * H, 68, 0.3 * H, [70, 48, 78], 0.28, 0.2);
+          for (let f = 0; f < 9; f++) bs(x - 30 + f * 7.5, GY - 0.22 * H, x - 30 + f * 7.5, GY - 0.22 * H + 9, 1.4, 0.6, [70, 48, 78], 0.4);
+          dab(g, inkSprite([170, 130, 50], 'bloom'), x, GY - 0.4 * H, 14, 0.7); g.globalAlpha = 1;
+        }
+        bs(W * 0.18, GY - 0.1 * H, W * 0.82, GY - 0.1 * H, 10, 10, [72, 50, 32], 0.3);
+        for (const x of [0.22, 0.5, 0.78]) bs(W * x, GY - 0.1 * H, W * x, GY - 4, 5, 5, [72, 50, 32], 0.3);
+        for (const x of [0.3, 0.42, 0.58, 0.7]) { bs(W * x, GY - 0.1 * H - 4, W * x, GY - 0.1 * H - 18, 3, 3, [210, 200, 180], 0.6); meta.glows.push({ x: W * x, y: GY - 0.1 * H - 24, r: 22, rgb: [235, 170, 70], a: 0.22, small: 1 }); }
+      } else if (name === 'study') {
+        backWall([115, 90, 62], 0.14);
+        floor([100, 80, 58], 0.12);
+        stoneRows(GY - 0.7 * H, GY - 4, [90, 75, 60], 0.06);
+        const wx = W * 0.74, ww = 0.17 * W, wh = 0.44 * H, wy = GY - 0.18 * H;
+        g.beginPath(); g.moveTo(wx - ww / 2, wy); g.lineTo(wx - ww / 2, wy - wh + ww / 2); g.arc(wx, wy - wh + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww / 2, wy); g.closePath();
+        g.fillStyle = rgba([150, 165, 185], 0.25); g.fill();
+        g.strokeStyle = rgba([60, 50, 40], 0.45); g.lineWidth = 12; g.stroke();
+        bs(wx, wy, wx, wy - wh, 4, 4, [60, 50, 40], 0.45); bs(wx - ww / 2, wy - wh * 0.45, wx + ww / 2, wy - wh * 0.45, 4, 4, [60, 50, 40], 0.45);
+        // The eclipse Gloucester fears
+        const ex = wx + ww * 0.18, ey = wy - wh * 0.7;
+        dab(g, inkSprite([60, 50, 30], 'bloom'), ex, ey, 30, 0.8); g.globalAlpha = 1;
+        dot(g, ex, ey, 13, [25, 22, 20], 0.92);
+        // Shelves of books
+        for (let s2 = 0; s2 < 4; s2++) {
+          const sy = GY - 0.12 * H - s2 * 0.11 * H;
+          bs(W * 0.06, sy, W * 0.34, sy, 5, 5, [70, 50, 30], 0.4);
+          for (let b = 0; b < 16; b++) { const bx = W * 0.07 + b * W * 0.0165 + R() * 3; const bh = 0.06 * H + R() * 0.03 * H; bs(bx, sy - 2, bx, sy - bh, 5, 5, [[90, 30, 25], [40, 55, 70], [70, 60, 30], [40, 40, 40]][b % 4], 0.35); }
+        }
+      } else if (name === 'night') {
+        backWall([40, 45, 70], 0.2);
+        floor([40, 40, 55], 0.16);
+        stoneRows(GY - 0.72 * H, GY - 4, [40, 45, 65], 0.1);
+        const wx = W * 0.5, ww = 0.15 * W, wh = 0.38 * H, wy = GY - 0.24 * H;
+        g.beginPath(); g.moveTo(wx - ww / 2, wy); g.lineTo(wx - ww / 2, wy - wh + ww / 2); g.arc(wx, wy - wh + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww / 2, wy); g.closePath();
+        g.fillStyle = rgba([20, 26, 50], 0.5); g.fill();
+        g.save(); g.globalCompositeOperation = 'destination-out';
+        g.beginPath(); g.arc(wx + ww * 0.12, wy - wh * 0.62, 16, 0, TAU); g.fill();
+        g.globalCompositeOperation = 'source-over'; g.fillStyle = rgba([20, 26, 50], 0.5);
+        g.beginPath(); g.arc(wx + ww * 0.12 + 8, wy - wh * 0.62 - 4, 14, 0, TAU); g.fill();
+        g.restore();
+        g.strokeStyle = rgba([30, 30, 40], 0.55); g.lineWidth = 12;
+        g.beginPath(); g.moveTo(wx - ww / 2, wy); g.lineTo(wx - ww / 2, wy - wh + ww / 2); g.arc(wx, wy - wh + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww / 2, wy); g.stroke();
+        for (let b = -2; b <= 2; b++) bs(wx + b * ww * 0.18, wy, wx + b * ww * 0.18, wy - wh * 0.8, 2.5, 2.5, [30, 30, 40], 0.55);
+        for (const x of [-0.05, 0.2, 0.8, 1.05]) {
+          const tx = W * x, ty = GY - 0.34 * H;
+          bs(tx, ty + 30, tx + 8, ty, 5, 4, [50, 35, 22], 0.6);
+          bs(tx - 8, ty + 32, tx + 8, ty + 32, 4, 4, [50, 40, 30], 0.6);
+          meta.glows.push({ x: tx + 8, y: ty - 10, r: 90, rgb: [235, 140, 50], a: 0.2, flick: 1 });
+        }
+      } else if (name === 'yard') {
+        wash(X0, Y0, X1 - X0, GY - 0.3 * H - Y0, [150, 140, 150], 0, 0.08);
+        floor([100, 90, 75], 0.15);
+        const top = GY - 0.3 * H;
+        wash(X0, top, X1 - X0, GY - top, [95, 88, 82], 0.3, 0.22);
+        stoneRows(top + 8, GY - 4, [70, 64, 58], 0.12);
+        for (let x = X0; x < X1; x += 46) g.fillStyle = rgba([95, 88, 82], 0.32), g.fillRect(x, top - 18, 26, 18);
+        for (const tx of [0.08, 0.92]) {
+          const x = W * tx, th = 0.55 * H;
+          wash(x - 50, GY - th, 100, th, [85, 80, 76], 0.36, 0.3);
+          g.fillStyle = rgba([60, 50, 50], 0.45); g.beginPath(); g.moveTo(x - 60, GY - th); g.lineTo(x, GY - th - 70); g.lineTo(x + 60, GY - th); g.fill();
+          bs(x, GY - th * 0.7, x, GY - th * 0.55, 6, 6, [30, 28, 26], 0.6);
+        }
+        const gx = W * 0.32;
+        g.fillStyle = rgba([30, 28, 26], 0.4);
+        g.beginPath(); g.moveTo(gx - 50, GY); g.lineTo(gx - 50, GY - 0.18 * H); g.arc(gx, GY - 0.18 * H, 50, Math.PI, 0); g.lineTo(gx + 50, GY); g.fill();
+        for (let k = -2; k <= 2; k++) bs(gx + k * 18, GY, gx + k * 18, GY - 0.18 * H - 40 + Math.abs(k) * 12, 2, 2, [20, 18, 16], 0.5);
+      } else if (name === 'woods') {
+        floor([50, 65, 45], 0.18);
+        ridge(GY - 0.12 * H, 0.12 * H, 0.004, [70, 90, 75], 0.12, 41);
+        for (let i = 0; i < 26; i++) {
+          const depth = R(), x = X0 + R() * (X1 - X0);
+          tree(x, (0.5 + depth * 0.5) * H, (R() - 0.5) * 0.3, [35 + depth * 10, 40, 32], 0.1 + depth * 0.28, i * 31 + 7, [45, 62, 42]);
+        }
+        const hx = W * 0.14;
+        bs(hx, GY, hx + 6, GY - 0.6 * H, 70, 44, [40, 34, 26], 0.48);
+        g.fillStyle = rgba([10, 10, 8], 0.55); g.beginPath(); g.ellipse(hx + 2, GY - 0.16 * H, 18, 34, 0, 0, TAU); g.fill();
+        for (let k = 0; k < 40; k++) cloud(X0 + R() * (X1 - X0), GY + R() * 20 - 6, 10 + R() * 14, [40, 58, 38], 0.18);
+      } else if (name === 'heath' || name === 'moor') {
+        const storm = name === 'heath';
+        ridge(GY - 0.1 * H, 0.2 * H, 0.0032, storm ? [70, 80, 100] : [110, 115, 115], 0.16, 11);
+        ridge(GY - 0.02 * H, 0.1 * H, 0.006, storm ? [55, 62, 70] : [95, 100, 90], 0.22, 23);
+        floor(storm ? [60, 62, 58] : [90, 92, 76], 0.16);
+        // A lone tree bent by the wind
+        const tx = W * 0.86;
+        bs(tx, GY - 2, tx - 20, GY - 0.22 * H, 22, 14, [36, 32, 30], 0.6);
+        bs(tx - 20, GY - 0.22 * H, tx - 70, GY - 0.36 * H, 14, 6, [36, 32, 30], 0.6);
+        for (let b = 0; b < 7; b++) { const by = GY - 0.18 * H - b * 0.03 * H, bx = tx - 18 - b * 7; bs(bx, by, bx - 60 - R() * 50, by - 10 + R() * 20, 5, 1, [36, 32, 30], 0.55); }
+        for (const sx of [0.2, 0.27]) { const x = W * sx; bs(x, GY - 0.06 * H, x + 3, GY - 0.06 * H - 40 - R() * 20, 15, 11, [70, 70, 72], 0.3); }
+        for (let k = 0; k < 60; k++) { const x = X0 + R() * (X1 - X0); bs(x, GY + R() * 12, x + (R() - 0.5) * 10, GY - 8 - R() * 10, 2.2, 0.6, [55, 60, 40], 0.3); }
+        if (!storm) {
+          g.strokeStyle = rgba([110, 100, 80], 0.2); g.lineWidth = 3;
+          g.beginPath(); g.moveTo(W * 0.42, GY + 0.4 * H); g.quadraticCurveTo(W * 0.5, GY, W * 0.58, GY - 0.06 * H); g.stroke();
+          g.beginPath(); g.moveTo(W * 0.72, GY + 0.4 * H); g.quadraticCurveTo(W * 0.62, GY, W * 0.6, GY - 0.06 * H); g.stroke();
+          const px = W * 0.66;
+          bs(px, GY - 2, px, GY - 70, 4, 4, [60, 45, 30], 0.6);
+          bs(px - 4, GY - 64, px + 38, GY - 58, 9, 7, [60, 45, 30], 0.55);
+          g.save(); g.font = 'italic 8px Georgia, serif'; g.fillStyle = rgba([241, 236, 225], 0.85); g.fillText('Dover', px + 4, GY - 58); g.restore();
+        }
+      } else if (name === 'farm') {
+        backWall([110, 75, 40], 0.2);
+        floor([105, 80, 45], 0.18);
+        const wood = [70, 46, 26];
+        bs(X0, GY - 0.5 * H, X1, GY - 0.5 * H, 16, 16, wood, 0.42);
+        bs(X0, GY - 0.22 * H, X1, GY - 0.22 * H, 8, 8, wood, 0.28);
+        for (const px of [-0.15, 0.12, 0.88, 1.15]) { const x = W * px; bs(x, GY, x, GY - 0.6 * H, 18, 16, wood, 0.45); bs(x, GY - 0.36 * H, x + (px < 0.5 ? 70 : -70), GY - 0.5 * H, 8, 8, wood, 0.35); }
+        for (let k = 0; k < 160; k++) { const x = W * 0.02 + R() * W * 0.22, y = GY - R() * R() * 0.18 * H; bs(x, y, x + (R() - 0.5) * 24, y - 6 - R() * 8, 1.6, 0.5, [150, 118, 50], 0.4); }
+        const wx = W * 0.84, wy = GY - 0.12 * H;
+        g.strokeStyle = rgba(wood, 0.5); g.lineWidth = 5; g.beginPath(); g.arc(wx, wy, 0.1 * H, 0, TAU); g.stroke();
+        for (let s2 = 0; s2 < 8; s2++) bs(wx, wy, wx + Math.cos(s2 * TAU / 8) * 0.1 * H, wy + Math.sin(s2 * TAU / 8) * 0.1 * H, 3, 2, wood, 0.45);
+        bs(W * 0.64, GY - 0.5 * H, W * 0.64, GY - 0.36 * H, 1.5, 1.5, [40, 30, 20], 0.6);
+        g.strokeStyle = rgba([40, 30, 20], 0.6); g.lineWidth = 2.5; g.strokeRect(W * 0.64 - 9, GY - 0.36 * H, 18, 24);
+        meta.glows.push({ x: W * 0.64, y: GY - 0.36 * H + 12, r: 130, rgb: [240, 160, 60], a: 0.24, flick: 1 });
+      } else if (name === 'camp' || name === 'prison') {
+        const french = name === 'camp';
+        ridge(GY - 0.06 * H, 0.16 * H, 0.0035, french ? [100, 120, 140] : [90, 90, 100], 0.14, french ? 5 : 9);
+        floor(french ? [90, 100, 80] : [80, 76, 70], 0.15);
+        const tc = french ? [70, 95, 150] : [140, 50, 40];
+        const pn = french ? [40, 60, 140] : [170, 30, 30];
+        const xs = french ? [-0.1, 0.12, 0.84, 1.08] : [-0.12, 0.08, 0.28];
+        xs.forEach((x, i) => tent(W * x, 0.26 * W, 0.3 * H - i * 6, tc, pn));
+        if (!french) {
+          for (let x = X0; x < X1; x += 16) bs(x, GY - 0.04 * H, x + 1, GY - 0.04 * H - 0.16 * H - (x % 3) * 4, 6, 4, [70, 55, 40], 0.22);
+          const tx = W * 0.82, th = 0.62 * H;
+          wash(tx - 60, GY - th, 120, th, [72, 70, 74], 0.42, 0.36);
+          stoneRows(GY - th + 6, GY - 4, [50, 48, 50], 0.1);
+          for (let x = tx - 60; x < tx + 60; x += 24) g.fillStyle = rgba([72, 70, 74], 0.45), g.fillRect(x, GY - th - 16, 14, 16);
+          g.fillStyle = rgba([12, 12, 16], 0.6); g.fillRect(tx - 14, GY - th * 0.72, 28, 36);
+          for (let b = 0; b < 4; b++) bs(tx - 10 + b * 7, GY - th * 0.72, tx - 10 + b * 7, GY - th * 0.72 + 36, 2, 2, [80, 80, 86], 0.8);
+          // St George's cross
+          const bx = W * 0.6, by = GY - 0.52 * H;
+          bs(bx, GY, bx, by, 4, 3, [60, 45, 30], 0.6);
+          g.fillStyle = rgba([235, 230, 220], 0.5); g.fillRect(bx, by, 52, 34);
+          g.fillStyle = rgba([170, 25, 25], 0.75); g.fillRect(bx + 21, by, 9, 34); g.fillRect(bx, by + 13, 52, 8);
+        } else {
+          const bx = W * 0.5, by = GY - 0.5 * H;
+          bs(bx, GY, bx, by, 4, 3, [60, 45, 30], 0.6);
+          g.fillStyle = rgba([40, 60, 140], 0.55); g.fillRect(bx, by, 52, 34);
+          for (const [fx, fy] of [[13, 9], [38, 9], [26, 24]]) dab(g, inkSprite([200, 160, 50], 'soft'), bx + fx, by + fy, 5, 0.95);
+          g.globalAlpha = 1;
+        }
+      } else if (name === 'tent') {
+        floor([130, 100, 60], 0.16);
+        for (let k = 0; k < 5; k++) {
+          const x = -0.3 * W + k * 0.42 * W;
+          g.fillStyle = rgba([150, 120, 80], 0.13 + (k % 2) * 0.05);
+          g.beginPath(); g.moveTo(x, Y0); g.quadraticCurveTo(x + 0.21 * W, GY - 0.25 * H, x + 0.42 * W, Y0); g.lineTo(x + 0.42 * W, Y0); g.fill();
+          bs(x, GY - 0.72 * H, x, GY, 5, 5, [80, 60, 36], 0.3);
+        }
+        wash(X0, GY - 0.5 * H, X1 - X0, 0.5 * H, [160, 130, 90], 0, 0.14);
+        meta.glows.push({ x: W * 0.3, y: GY - 0.3 * H, r: 140, rgb: [240, 190, 110], a: 0.16, flick: 1 });
+      } else if (name === 'dover') {
+        const hz = GY - 0.2 * H;
+        wash(X0, Y0, X1 - X0, hz - Y0, [150, 175, 195], 0, 0.1);
+        wash(X0, hz, X1 - X0, 0.17 * H, [70, 95, 115], 0.3, 0.12);
+        bs(X0, hz, X1, hz, 2, 2, [50, 70, 90], 0.4);
+        g.fillStyle = rgba([175, 172, 160], 0.35);
+        g.beginPath(); g.moveTo(W * 0.92, hz + 4); g.lineTo(W * 0.98, hz - 0.08 * H); g.lineTo(X1, hz - 0.1 * H); g.lineTo(X1, hz + 0.1 * H); g.lineTo(W * 0.9, hz + 0.1 * H); g.fill();
+        floor([95, 115, 70], 0.18);
+        for (let k = 0; k < 70; k++) { const x = X0 + R() * (X1 - X0), y = GY + R() * 18 - 10; bs(x, y + 6, x + (R() - 0.5) * 6, y - 4, 1.4, 0.5, [70, 95, 50], 0.4); if (R() < 0.35) dot(g, x, y - 5, 1.8, R() < 0.5 ? [180, 60, 70] : [200, 170, 50], 0.7); }
+        meta.horizon = hz;
+      } else if (name === 'battle') {
+        ridge(GY - 0.08 * H, 0.16 * H, 0.004, [120, 70, 50], 0.18, 3);
+        floor([90, 60, 40], 0.2);
+        for (let k = 0; k < 22; k++) { const x = X0 + R() * (X1 - X0), a2 = (R() - 0.5) * 0.9; bs(x, GY + R() * 10, x + Math.sin(a2) * 70, GY - Math.cos(a2) * 70, 3, 1.5, [40, 30, 24], 0.45); }
+        for (const x of [0.1, 0.42, 0.9]) {
+          const bx = W * x, by = GY - 0.42 * H;
+          bs(bx, GY, bx + 6, by, 4, 3, [50, 38, 28], 0.55);
+          g.fillStyle = rgba(x < 0.5 ? [130, 30, 30] : [40, 60, 130], 0.4);
+          g.beginPath(); g.moveTo(bx + 6, by); g.lineTo(bx + 50, by + 8); g.lineTo(bx + 38, by + 18); g.lineTo(bx + 48, by + 30); g.lineTo(bx + 6, by + 30); g.fill();
+        }
+        meta.glows.push({ x: W * 0.2, y: GY - 10, r: 90, rgb: [235, 110, 40], a: 0.2, flick: 1 }, { x: W * 0.75, y: GY - 6, r: 80, rgb: [235, 110, 40], a: 0.18, flick: 1 });
+      }
+      g.globalAlpha = 1;
+      return { cv, x0: X0, y0: Y0, sc, meta, key: name + W + 'x' + H };
+    }
+
+    const SET_CACHE = {};
+    function getSet(name, GY) {
+      const key = name + W + 'x' + H + ':' + Math.round(GY);
+      if (!SET_CACHE[key]) {
+        for (const k in SET_CACHE) if (!k.endsWith('x' + H + ':' + Math.round(GY))) delete SET_CACHE[k];
+        const keys = Object.keys(SET_CACHE);
+        if (keys.length > 3) delete SET_CACHE[keys[0]];
+        SET_CACHE[key] = paintSet(name, W, H, GY);
+      }
+      return SET_CACHE[key];
+    }
+
+    // Living layer: clouds, firelight, sea, smoke, gulls
+    const CLOUDS = [];
+    for (let i = 0; i < 14; i++) CLOUDS.push({ u: Math.random() * 2 - 0.5, v: Math.random(), r: 0.12 + Math.random() * 0.12, s: 0.01 + Math.random() * 0.02 });
+    function drawLiving(c, set, sc, t, GY) {
+      const meta = set.meta, n = meta.name;
+      if (n === 'heath' || n === 'night' || n === 'battle' || n === 'moor') {
+        const dark = n === 'battle' ? [70, 50, 40] : n === 'moor' ? [120, 125, 130] : [45, 52, 70];
+        const a = n === 'moor' ? 0.06 : 0.12 + sc.storm * 0.08;
+        for (const cl of CLOUDS) {
+          cl.u += cl.s * FRAME_DT * (1 + sc.storm * 3);
+          if (cl.u > 1.6) cl.u = -0.6;
+          const y = n === 'battle' ? GY - 0.05 * H - cl.v * 0.5 * H : GY - 0.55 * H - cl.v * 0.4 * H;
+          dab(c, inkSprite(dark, 'soft'), cl.u * W, y, cl.r * W, a);
+        }
+      }
+      for (const gl of meta.glows) {
+        const f = gl.flick ? 1 + 0.12 * Math.sin(t * 9 + gl.x) + 0.08 * Math.sin(t * 23 + gl.y) : 1 + 0.05 * Math.sin(t * 2 + gl.x);
+        dab(c, inkSprite(gl.rgb, 'soft'), gl.x, gl.y, gl.r * f, gl.a);
+      }
+      if (n === 'dover') {
+        const hz = meta.horizon;
+        c.globalAlpha = 1;
+        for (let k = 0; k < 9; k++) {
+          const y = hz + 8 + k * k * 1.6;
+          const off = ((t * (10 + k * 3)) % 120);
+          for (let x = -0.45 * W - off; x < 1.45 * W; x += 120) drawBrushStroke(c, x, y, x + 34 + k * 3, y + 0.5, 1 + k * 0.15, 0.5, [60, 85, 105], 0.18);
+        }
+        for (let k = 0; k < 4; k++) {
+          const gx = ((t * (14 + k * 5) + k * 300) % (1.6 * W)) - 0.3 * W, gy = hz - 0.2 * H - k * 22 + Math.sin(t + k) * 8;
+          const fl = Math.sin(t * 6 + k) * 3;
+          drawBrushStroke(c, gx - 8, gy - fl, gx, gy, 1.5, 1, [40, 40, 44], 0.6);
+          drawBrushStroke(c, gx, gy, gx + 8, gy - fl, 1, 1.5, [40, 40, 44], 0.6);
+        }
+      }
+      if (n === 'battle') {
+        for (let k = 0; k < 10; k++) {
+          const ph = (t * 0.05 + k * 0.1) % 1;
+          dab(c, inkSprite([60, 55, 50], 'soft'), W * (0.05 + k * 0.1) + ph * 60, GY - ph * 0.6 * H, 40 + ph * 120, 0.12 * (1 - ph));
+        }
+      }
+      c.globalAlpha = 1;
+    }
+
+    let curSetName = null, prevSetObj = null, setFade = 1;
+    const mood = { tint: [200, 170, 120], a: 0.1, vig: 0.2 };
+    function drawScenery(sc, si, t, camState, toScreenFn, shx, shy) {
+      bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      const GY = H * 0.56 + 30 * baseScale;
+      const name = SCENE_SET[si] || 'court';
+      const set = getSet(name, GY);
+      if (name !== curSetName) {
+        if (curSetName) { prevSetObj = getSet(curSetName, GY); setFade = 0; }
+        curSetName = name;
+      }
+      setFade = Math.min(1, setFade + FRAME_DT / 1.4 + (FRAME_DT ? 0 : 1));
+      const zb = 1 + (camState.z - 1) * 0.55;
+      const Ax = lerp(W / 2, camState.x, 0.5);
+      const sA = toScreenFn({ x: camState.x, y: GY });
+      BGT = { zb, Ax, GY, sx: sA.x, sy: sA.y };
+      bgCtx.setTransform(DPR * zb, 0, 0, DPR * zb, DPR * (sA.x - Ax * zb + shx * 0.4), DPR * (sA.y - GY * zb + shy * 0.4));
+      const paint = (s2, a) => {
+        if (a <= 0.01) return;
+        bgCtx.globalAlpha = a;
+        bgCtx.drawImage(s2.cv, s2.x0, s2.y0, s2.cv.width / s2.sc, s2.cv.height / s2.sc);
+        bgCtx.globalAlpha = 1;
+        drawLiving(bgCtx, s2, sc, t, GY);
+      };
+      if (prevSetObj && setFade < 1) paint(prevSetObj, 1 - setFade);
+      paint(set, setFade);
+      // Mood: tint and vignette, easing toward the new location
+      const m = MOODS[name];
+      const k = 1 - Math.exp(-FRAME_DT * 1.2) || 0.02;
+      for (let i = 0; i < 3; i++) mood.tint[i] = lerp(mood.tint[i], m.tint[i], k);
+      mood.a = lerp(mood.a, m.a + sc.storm * 0.04, k); mood.vig = lerp(mood.vig, m.vig, k);
+      bgCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      bgCtx.fillStyle = rgba(mood.tint.map(Math.round), mood.a);
+      bgCtx.fillRect(0, 0, W, H);
+      const vg = bgCtx.createRadialGradient(W / 2, H * 0.55, Math.min(W, H) * 0.3, W / 2, H * 0.55, Math.hypot(W, H) * 0.62);
+      vg.addColorStop(0, 'rgba(40, 32, 26, 0)'); vg.addColorStop(1, `rgba(40, 32, 26, ${mood.vig})`);
+      bgCtx.fillStyle = vg; bgCtx.fillRect(0, 0, W, H);
+    }
+
+    // =====================================================================
+    //  DRAMA — stage lighting, light shafts, weather, foreground depth,
+    //  and special effects for the play's great moments
+    // =====================================================================
+    const lightCanvas = document.getElementById('lightCanvas');
+    const lightCtx = lightCanvas.getContext('2d');
+    const SPOT = { court: 0.16, study: 0.3, hall: 0.26, night: 0.5, yard: 0.3, woods: 0.38, heath: 0.4, moor: 0.22,
+      farm: 0.46, camp: 0.16, tent: 0.3, dover: 0.12, battle: 0.32, prison: 0.42 };
+    // Shafts of light, in backdrop coordinates (fractions of the screen, relative to the floor line)
+    const RAYS = {
+      court: [{ x: 0.12, y: -0.78, bx: 0.36, w0: 0.04, w1: 0.2, rgb: [255, 232, 180], a: 0.17 }, { x: 0.88, y: -0.78, bx: 0.64, w0: 0.04, w1: 0.2, rgb: [255, 232, 180], a: 0.17 }],
+      study: [{ x: 0.74, y: -0.42, bx: 0.5, w0: 0.11, w1: 0.32, rgb: [255, 236, 190], a: 0.2 }],
+      night: [{ x: 0.5, y: -0.44, bx: 0.44, w0: 0.1, w1: 0.26, rgb: [205, 220, 255], a: 0.15 }],
+      tent: [{ x: 0.28, y: -0.8, bx: 0.42, w0: 0.06, w1: 0.3, rgb: [255, 228, 175], a: 0.18 }],
+      dover: [{ x: 0.1, y: -0.95, bx: 0.3, w0: 0.05, w1: 0.16, rgb: [255, 245, 215], a: 0.12 }, { x: 0.55, y: -0.95, bx: 0.62, w0: 0.04, w1: 0.12, rgb: [255, 245, 215], a: 0.1 }],
+      woods: [{ x: 0.25, y: -0.9, bx: 0.33, w0: 0.02, w1: 0.07, rgb: [235, 245, 200], a: 0.14 }, { x: 0.55, y: -0.9, bx: 0.6, w0: 0.02, w1: 0.08, rgb: [235, 245, 200], a: 0.12 }, { x: 0.78, y: -0.9, bx: 0.74, w0: 0.015, w1: 0.06, rgb: [235, 245, 200], a: 0.12 }],
+      prison: [{ x: 0.82, y: -0.45, bx: 0.62, w0: 0.03, w1: 0.14, rgb: [210, 220, 240], a: 0.13 }]
+    };
+    let BGT = { zb: 1, Ax: 0, GY: 0, sx: 0, sy: 0 };
+    const bgToScreen = (x, y) => ({ x: (x - BGT.Ax) * BGT.zb + BGT.sx, y: (y - BGT.GY) * BGT.zb + BGT.sy });
+
+    const AMBIENT = [];
+    const spot = { x: 0, y: 0, x2: 0, y2: 0, has2: 0, init: false };
+    let hushUntil = -1, closeIds = null, closeUntil = -1;
+    const VORTEX = [], BLOTS = [];
+    let greyNow = 0;
+
+    function spawnAmbient(set, dt, groundY) {
+      const add = (rate, make) => { let n = rate * dt; while (n > 0) { if (Math.random() < n) AMBIENT.push(make()); n -= 1; } };
+      const edgeX = () => Math.random() * W;
+      if (set === 'heath') {
+        add(5, () => ({ k: 'leaf', x: -20, y: H * (0.2 + Math.random() * 0.6), vx: 260 + Math.random() * 200, vy: 30 - Math.random() * 60, r: 3 + Math.random() * 3, rot: Math.random() * 6, vr: 8, life: 4, col: [40, 38, 30] }));
+        add(14, () => ({ k: 'splash', x: edgeX(), y: groundY + Math.random() * 30, life: 0.35, r: 4 + Math.random() * 4, col: [30, 36, 48] }));
+      } else if (set === 'woods' || set === 'moor') {
+        add(set === 'woods' ? 2.5 : 1.2, () => ({ k: 'leaf', x: edgeX(), y: -10, vx: 20 - Math.random() * 40, vy: 30 + Math.random() * 25, r: 3 + Math.random() * 2.5, rot: Math.random() * 6, vr: 2 + Math.random() * 2, life: 14, col: set === 'woods' ? [70, 80, 40] : [90, 70, 40] }));
+      } else if (set === 'dover') {
+        add(2, () => ({ k: 'petal', x: -10, y: H * (0.25 + Math.random() * 0.5), vx: 40 + Math.random() * 40, vy: -5 + Math.random() * 10, r: 2.4 + Math.random() * 1.5, rot: Math.random() * 6, vr: 3, life: 18, col: Math.random() < 0.5 ? [200, 80, 100] : [215, 180, 60] }));
+      } else if (set === 'battle') {
+        add(10, () => ({ k: 'ember', x: edgeX(), y: groundY + 20, vx: 10 - Math.random() * 20, vy: -40 - Math.random() * 60, r: 1.2 + Math.random() * 1.8, life: 3 + Math.random() * 2, col: [255, 150, 60] }));
+        add(4, () => ({ k: 'ash', x: edgeX(), y: -10, vx: 10, vy: 20 + Math.random() * 20, r: 1.5 + Math.random() * 1.5, life: 20, col: [70, 66, 62] }));
+      } else if (set === 'prison') {
+        add(1.5, () => ({ k: 'ash', x: edgeX(), y: -10, vx: 6, vy: 14 + Math.random() * 10, r: 1.4 + Math.random() * 1.4, life: 30, col: [110, 106, 104] }));
+      }
+      if (AMBIENT.length > 260) AMBIENT.splice(0, AMBIENT.length - 260);
+    }
+    function drawAmbient(c, lc, dt, t) {
+      for (let i = AMBIENT.length - 1; i >= 0; i--) {
+        const p = AMBIENT[i];
+        p.age = (p.age || 0) + dt;
+        if (p.age > p.life || p.x > W + 40 || p.y > H + 40 || p.y < -60) { AMBIENT.splice(i, 1); continue; }
+        if (p.k === 'splash') {
+          const k = p.age / p.life;
+          c.strokeStyle = rgba(p.col, 0.35 * (1 - k)); c.lineWidth = 1;
+          c.beginPath(); c.ellipse(p.x, p.y, p.r * (0.5 + k * 1.6), p.r * 0.35 * (0.5 + k), 0, Math.PI, TAU); c.stroke();
+          continue;
+        }
+        p.x += (p.vx + (p.k === 'leaf' || p.k === 'petal' ? Math.sin(t * 2 + i) * 25 : 0)) * dt;
+        p.y += p.vy * dt;
+        if (p.k === 'ember') {
+          const k = p.age / p.life;
+          lc.fillStyle = rgba(p.col, 0.8 * (1 - k)); lc.beginPath(); lc.arc(p.x + Math.sin(t * 3 + i) * 6, p.y, p.r, 0, TAU); lc.fill();
+          continue;
+        }
+        p.rot += (p.vr || 0) * dt;
+        c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, p.k === 'ash' ? 1 : Math.abs(Math.cos(p.rot * 0.7)) * 0.8 + 0.2);
+        c.fillStyle = rgba(p.col, p.k === 'ash' ? 0.5 : 0.75);
+        c.beginPath(); c.ellipse(0, 0, p.r * (p.k === 'ash' ? 1 : 1.8), p.r, 0, 0, TAU); c.fill();
+        c.restore();
+      }
+    }
+
+    // Light shafts and the dust that turns in them, on the screen-blended light layer
+    const MOTES = Array.from({ length: 70 }, () => ({ u: Math.random(), v: Math.random() - 0.5, ph: Math.random() * 9, ray: Math.random() }));
+    function drawRays(lc, set, t, dim) {
+      const rays = RAYS[set];
+      if (!rays) return;
+      const GY = BGT.GY;
+      rays.forEach((r, ri) => {
+        const top = bgToScreen(W * r.x, GY + H * r.y), bot = bgToScreen(W * r.bx, GY);
+        const w0 = W * r.w0 * BGT.zb / 2, w1 = W * r.w1 * BGT.zb / 2;
+        const shimmer = (0.85 + 0.15 * Math.sin(t * 0.7 + ri * 2)) * dim;
+        const gr = lc.createLinearGradient(top.x, top.y, bot.x, bot.y);
+        gr.addColorStop(0, rgba(r.rgb, r.a * shimmer)); gr.addColorStop(0.7, rgba(r.rgb, r.a * 0.55 * shimmer)); gr.addColorStop(1, rgba(r.rgb, 0));
+        lc.fillStyle = gr;
+        lc.beginPath(); lc.moveTo(top.x - w0, top.y); lc.lineTo(top.x + w0, top.y); lc.lineTo(bot.x + w1, bot.y); lc.lineTo(bot.x - w1, bot.y); lc.closePath(); lc.fill();
+        // Dust turning in the beam
+        MOTES.forEach((m, mi) => {
+          if (Math.floor(m.ray * rays.length) !== ri) return;
+          const u = (m.u + t * 0.012 * (0.5 + (mi % 5) * 0.2)) % 1;
+          const x = lerp(top.x, bot.x, u) + m.v * lerp(w0, w1, u) * 1.6 + Math.sin(t * 0.6 + m.ph) * 6;
+          const y = lerp(top.y, bot.y, u) + Math.cos(t * 0.5 + m.ph) * 5;
+          lc.fillStyle = rgba(r.rgb, 0.55 * dim * Math.sin(u * Math.PI));
+          lc.beginPath(); lc.arc(x, y, 1 + (mi % 3) * 0.5, 0, TAU); lc.fill();
+        });
+      });
+    }
+
+    // Foreground: soft, out-of-focus shapes close to the lens, moving faster than the stage
+    function drawForeground(c, set, t) {
+      const par = -(cam.x - W / 2) * cam.z * 0.45;
+      const zf = 0.85 + 0.3 * cam.z;
+      const soft = (x, y, r, rgb, a) => dab(c, inkSprite(rgb, 'soft'), x, y, r, a);
+      const bottom = H - (frame.tp || 60);
+      if (set === 'court' || set === 'hall' || set === 'study') {
+        const col = set === 'court' ? [60, 44, 30] : [52, 44, 38];
+        for (let y = -40; y < H + 60; y += 34) { soft(-30 + par * 1.2, y, 70 * zf, col, 0.2); soft(W + 34 + par * 1.2, y, 64 * zf, col, 0.2); }
+      } else if (set === 'woods') {
+        for (let k = 0; k < 7; k++) { soft(par + k * 40 - 20, (frame.hdr || 60) + 10 + k * 14, (50 - k * 4) * zf, [30, 40, 26], 0.28); soft(W - par * 0.8 - k * 46 + 10, (frame.hdr || 60) + k * 10, (46 - k * 3) * zf, [30, 40, 26], 0.26); }
+        for (let k = 0; k < 6; k++) soft(par * 1.3 + k * 36, bottom + 20 - (k % 2) * 12, 44 * zf, [28, 38, 24], 0.32);
+      } else if (set === 'heath' || set === 'moor' || set === 'dover') {
+        c.lineCap = 'round';
+        const sway = set === 'heath' ? 0.5 : 0.18;
+        for (let k = 0; k < 26; k++) {
+          const x = ((k * 97 + par * 1.4) % (W + 200) + W + 200) % (W + 200) - 100;
+          const h = (60 + (k * 37) % 70) * zf, bend = Math.sin(t * (set === 'heath' ? 2.2 : 0.9) + k) * sway + (set === 'heath' ? 0.45 : 0.1);
+          c.strokeStyle = rgba(set === 'dover' ? [50, 70, 40] : [34, 38, 30], 0.42);
+          c.lineWidth = (3 + (k % 3)) * zf;
+          c.beginPath(); c.moveTo(x, bottom + 30); c.quadraticCurveTo(x + bend * h * 0.3, bottom + 30 - h * 0.6, x + bend * h * 0.8, bottom + 30 - h); c.stroke();
+          if (set === 'dover' && k % 4 === 0) dot(c, x + bend * h * 0.8, bottom + 30 - h, 3.2 * zf, k % 8 ? [190, 70, 90] : [210, 175, 55], 0.7);
+        }
+      } else if (set === 'night' || set === 'prison' || set === 'yard') {
+        for (let y = -40; y < H + 60; y += 30) { soft(-20 + par, y, 60 * zf, [24, 24, 34], 0.26); soft(W + 24 + par, y, 60 * zf, [24, 24, 34], 0.26); }
+      } else if (set === 'battle') {
+        c.lineCap = 'round';
+        for (let k = 0; k < 5; k++) {
+          const x = W - 60 + par * 1.5 - k * 26, a2 = -0.5 + k * 0.12;
+          drawBrushStroke(c, x, bottom + 40, x + Math.sin(a2) * 260 * zf, bottom + 40 - Math.cos(a2) * 260 * zf, 7 * zf, 3 * zf, [30, 24, 20], 0.5);
+        }
+        soft(par + 40, bottom, 120 * zf, [60, 50, 44], 0.25);
+      } else if (set === 'tent' || set === 'camp') {
+        const col = set === 'tent' ? [120, 92, 60] : [60, 70, 96];
+        for (let y = -30; y < H + 40; y += 30) { soft(-20 + par, y, 54 * zf, col, 0.22); soft(W + 20 + par, y, 54 * zf, col, 0.22); }
+      } else if (set === 'farm') {
+        for (let k = 0; k < 40; k++) { const x = par * 1.3 + (k * 23) % 260 - 30; drawBrushStroke(c, x, bottom + 30, x + 14 - (k % 5) * 6, bottom + 30 - 50 - (k * 13) % 60, 3 * zf, 1, [150, 116, 50], 0.4); }
+      }
+      c.globalAlpha = 1;
+    }
+
+    // Blood on the lens at the blinding
+    function addBlots(n) {
+      for (let k = 0; k < n; k++) BLOTS.push({ x: W * (0.1 + Math.random() * 0.8), y: H * (0.15 + Math.random() * 0.5), r: 18 + Math.random() * 46, age: 0, drip: 40 + Math.random() * 160, life: 9 + Math.random() * 4 });
+    }
+    function drawBlots(c, dt) {
+      for (let i = BLOTS.length - 1; i >= 0; i--) {
+        const b = BLOTS[i];
+        b.age += dt;
+        if (b.age > b.life) { BLOTS.splice(i, 1); continue; }
+        const k = b.age / b.life, a = 0.55 * (1 - k * k);
+        dab(c, inkSprite([110, 8, 10], 'bloom'), b.x, b.y, b.r * (1 + Math.min(0.3, b.age * 0.6)), a);
+        dab(c, inkSprite([90, 6, 8], 'soft'), b.x, b.y, b.r * 0.55, a * 0.8);
+        const dl = Math.min(b.drip, b.age * 30);
+        drawBrushStroke(c, b.x, b.y, b.x + 2, b.y + dl, b.r * 0.22, 2.2, [100, 8, 10], a * 0.9);
+        dot(c, b.x + 2, b.y + dl, 3, [100, 8, 10], a);
+      }
+      c.globalAlpha = 1;
+    }
+
+    // Ink spiralling around a character
+    function stepVortex(dt) {
+      for (let i = VORTEX.length - 1; i >= 0; i--) {
+        const v = VORTEX[i], p = BY_ID[v.id];
+        if (elapsed > v.until || !p || !p.wp) { VORTEX.splice(i, 1); continue; }
+        if (!simRunning) continue;
+        const cx = p.wp.S.x, cy = p.wp.S.y + 6 * p.sc();
+        for (let k = 0; k < 4; k++) {
+          const ang = elapsed * 3 + k * Math.PI / 2 + Math.random() * 0.4;
+          const rad = (40 + Math.random() * 30) * p.sc();
+          const x = cx + Math.cos(ang) * rad, y = cy + Math.sin(ang) * rad * 0.7;
+          emitWisp(x, y, -Math.sin(ang) * 140, Math.cos(ang) * 100 - 30, 4 * p.sc(), k % 2 ? p.rgb : [20, 20, 28], 0.22, 1.6, 2.4, 'soft');
+        }
+      }
+    }
+    function gust() {
+      for (let k = 0; k < 40; k++) {
+        const sy = H * (0.2 + Math.random() * 0.6);
+        emitWisp((-60 - camTx) / cam.z, (sy - camTy) / cam.z, (500 + Math.random() * 300) / cam.z, (Math.random() - 0.5) * 60, (20 + Math.random() * 40) / cam.z, [30, 34, 46], 0.12, 2.5, 1.2, 'soft');
+      }
+      shake = Math.max(shake, 5);
+    }
+
+    function drawStageLight(c, set, speaker, partnerP, dt) {
+      const hush = elapsed < hushUntil ? Math.min(1, (hushUntil - elapsed) / 1.5) : 0;
+      const a = (SPOT[set] || 0.2) + hush * 0.28;
+      if (a < 0.02) return;
+      let tx = W / 2, ty = H * 0.5, has2 = 0, tx2 = 0, ty2 = 0;
+      if (speaker && speaker.onStage && speaker.wp) { const s2 = toScreen({ x: speaker.wp.S.x, y: speaker.wp.S.y + 10 * speaker.sc() }); tx = s2.x; ty = s2.y; }
+      if (partnerP && partnerP.onStage && partnerP.wp) { const s3 = toScreen(partnerP.wp.S); tx2 = s3.x; ty2 = s3.y; has2 = 1; }
+      const k = spot.init ? 1 - Math.exp(-dt * 3) : 1;
+      spot.x = lerp(spot.x, tx, k); spot.y = lerp(spot.y, ty, k);
+      spot.x2 = lerp(spot.x2 || tx2, tx2 || spot.x2, k); spot.y2 = lerp(spot.y2 || ty2, ty2 || spot.y2, k);
+      spot.has2 = lerp(spot.has2, has2, k); spot.init = true;
+      c.save();
+      c.fillStyle = `rgba(16, 13, 11, ${a})`;
+      c.fillRect(0, 0, W, H);
+      c.globalCompositeOperation = 'destination-out';
+      const R = (150 - hush * 40) * baseScale * cam.z;
+      const hole = (x, y, r, s) => {
+        const g = c.createRadialGradient(x, y, r * 0.15, x, y, r);
+        g.addColorStop(0, `rgba(0,0,0,${s})`); g.addColorStop(0.55, `rgba(0,0,0,${s * 0.75})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+      };
+      hole(spot.x, spot.y, R, 1);
+      if (spot.has2 > 0.05) hole(spot.x2, spot.y2, R * 0.75, 0.7 * spot.has2 * (1 - hush * 0.6));
+      hole(W / 2, H * 0.55, Math.max(W, H) * 0.55, 0.35 * (1 - hush));
+      c.restore();
+    }
+
+    // =====================================================================
     //  EFFECTS
     // =====================================================================
     let shake = 0, flash = 0, bolt = null;
+    const REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function lightning() {
       flash = 0.75; shake = Math.max(shake, 6);
       const x0 = W * (0.15 + Math.random() * 0.7);
@@ -1641,6 +2858,11 @@
         shake = Math.max(shake, 8);
       } else if (kind === 'spatter' && p && p.wp) burst(p.wp.S.x, p.wp.S.y + 20 * baseScale, p.rgb, 18, 4, 5 * baseScale, false);
       else if (kind === 'tom') { const q = BY_ID.edgar; if (q.wp) burst(q.wp.S.x, q.wp.S.y, [70, 55, 35], 22, 4, 5, false); }
+      else if (kind === 'hush') { hushUntil = elapsed + 7; closeUntil = elapsed + 7; closeIds = null; }
+      else if (kind === 'close') { closeUntil = elapsed + 6; closeIds = id ? id.split('+') : null; }
+      else if (kind === 'vortex' && p) VORTEX.push({ id, until: elapsed + 4.5 });
+      else if (kind === 'lensBlood') { addBlots(5); flash = 0; }
+      else if (kind === 'gust') gust();
     }
 
     // =====================================================================
@@ -1701,7 +2923,7 @@
       ytReady = false; ytPlaying = false; ytTime = null;
       showFallback(false);
       ytDockHint.style.display = 'block';
-      ytDockHint.textContent = 'Tap ▶ in the video to start the sound, then "Hide Audio Box"';
+      ytDockHint.textContent = 'Tap \u25B6 in the video to start the sound.';
       const hasOrigin = location.origin && location.origin !== 'null' && /^https?:/.test(location.origin);
       const origin = hasOrigin ? '&origin=' + encodeURIComponent(location.origin) : '';
       ytFrame = document.createElement('iframe');
@@ -1727,7 +2949,8 @@
       ytPlaying = state === 1;
       if (ytPlaying) {
         simRunning = true;
-        ytDockHint.textContent = 'Sound playing — tap "Hide Audio Box" to tuck it away';
+        ytDockHint.style.display = 'none';
+        clearTimeout(window.__tuckT); window.__tuckT = setTimeout(() => { if (ytPlaying) setSoundCard(false); }, 4000);
       } else if (was && state === 2) {
         simRunning = false;
       }
@@ -1751,9 +2974,7 @@
     document.getElementById('ytRetryBtn').addEventListener('click', buildPlayer);
     document.getElementById('ytSilentBtn').addEventListener('click', () => {
       showFallback(false);
-      ytDock.classList.add('tucked');
-      ytDockHint.style.display = 'none';
-      hideDockBtn.textContent = 'Show Audio Box';
+      setSoundCard(false);
       simRunning = true;
     });
     document.getElementById('ytChangeBtn').addEventListener('click', () => {
@@ -1781,20 +3002,21 @@
       if (ytReady) { ytSend('seekTo', [sec, true]); ytTime = sec; ytTimeAt = performance.now(); }
     }
     sceneSelector.addEventListener('change', (e) => {
-      seekTo(parseInt(e.target.value, 10) + 0.5);
+      seekTo(SCENES[parseInt(e.target.value, 10)].start + 0.5);
       if (ytReady) ytSend('playVideo');
     });
     timelineSlider.addEventListener('input', (e) => {
       isScrubbing = true;
       simTime = parseInt(e.target.value, 10);
-      timeDisplay.textContent = `${formatTime(simTime)} / 03:01:13`;
+      showTime(simTime);
     });
     timelineSlider.addEventListener('change', (e) => { isScrubbing = false; seekTo(parseInt(e.target.value, 10)); });
 
     function formatTime(sec) {
       const s = Math.max(0, Math.floor(sec || 0));
-      return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(v => String(v).padStart(2, '0')).join(':');
+      return Math.floor(s / 3600) + ':' + String(Math.floor((s % 3600) / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
     }
+    const showTime = (t) => { timeDisplay.innerHTML = formatTime(t) + '<span class="tot"> / ' + formatTime(TOTAL) + '</span>'; };
 
     // =====================================================================
     //  MAIN LOOP
@@ -1803,13 +3025,23 @@
     let topBarBottom = 60;
     const topBarEl = document.getElementById('topBar');
     let lastWordCount = -1, lastLineKey = '';
+    const cam = { x: 0, y: 0, z: 1, init: false };
+    let camTx = 0, camTy = 0;
+    const toScreen = (p) => ({ x: p.x * cam.z + camTx, y: p.y * cam.z + camTy });
+    let cardSi = -1, cardT0 = -9;
 
     function frame(now) {
       requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - lastNow) / 1000);
       lastNow = now;
       elapsed += dt;
+      FRAME_DT = simRunning ? dt : 0;
+      FLOW_T += dt * (elapsed < hushUntil ? 0.3 : 1);
       topBarBottom = topBarEl.getBoundingClientRect().bottom;
+      const tpH = H - transportEl.getBoundingClientRect().top;
+      if (Math.abs(topBarBottom - (frame.hdr || 0)) > 0.5) { frame.hdr = topBarBottom; document.documentElement.style.setProperty('--hdr', topBarBottom + 'px'); }
+      if (Math.abs(tpH - (frame.tp || 0)) > 0.5) { frame.tp = tpH; document.documentElement.style.setProperty('--tp', tpH + 'px'); }
+      if (syncOn) syncPanel.style.top = (topBarBottom + 8) + 'px';
       baseScale = clamp(Math.min(W / 950, H / 620), 0.72, 1.4);
 
       // --- Clock
@@ -1819,13 +3051,15 @@
         simTime = (simTime + dt) % TOTAL;
       }
       if (!isScrubbing) timelineSlider.value = Math.floor(simTime);
-      timeDisplay.textContent = `${formatTime(simTime)} / 03:01:13`;
+      showTime(simTime);
+      tlFill.style.width = (simTime / TOTAL * 100) + '%';
+      playPauseBtn.classList.toggle('paused', !simRunning);
       const T = simTime;
       const jump = Math.abs(T - prevSimTime) > 2.5;
 
       const si = getSceneIndex(T);
       const sc = SCENES[si];
-      if (document.activeElement !== sceneSelector) sceneSelector.value = sc.start;
+      if (document.activeElement !== sceneSelector) sceneSelector.value = String(si);
       const { st, lineIdx, sd } = resolveState(sc, T);
       const line = lineIdx >= 0 ? sc.lines[lineIdx] : null;
 
@@ -1855,6 +3089,18 @@
       }
       if (sc.storm >= 0.8 && simRunning && Math.random() < dt * 0.22 * sc.storm) lightning();
       BY_STORM = sc.storm;
+      WIND = sc.storm > 0.5 ? 55 * sc.storm * sn(elapsed * 0.35) : 0;
+      if (jump) { WISPS.length = 0; BLOTS.length = 0; VORTEX.length = 0; hushUntil = -1; closeUntil = -1; }
+      if (si !== cardSi) {
+        if (cam.init) {
+          for (let k = 0; k < 26; k++) {
+            const sx = (k / 25) * W + (Math.random() - 0.5) * 60, sy = H * (0.25 + Math.random() * 0.55);
+            emitWisp((sx - camTx) / cam.z, (sy - camTy) / cam.z, (Math.random() - 0.5) * 60, (Math.random() - 0.3) * 30,
+              (50 + Math.random() * 60) / cam.z, [22, 22, 28], 0.2, 1.4 + Math.random() * 1.2, 0.9, 'soft');
+          }
+        }
+        cardSi = si; cardT0 = elapsed;
+      }
 
       const info = { st, dead: sc.dead, line, partner, revealing, snap: jump, storm: sc.storm };
       prevSimTime = T;
@@ -1863,17 +3109,16 @@
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = jump ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0.32)';
+      ctx.fillStyle = jump ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0.26)';
       ctx.fillRect(0, 0, stageCanvas.width, stageCanvas.height);
       ctx.restore();
 
       shake *= Math.pow(0.02, dt);
+      if (REDUCED_MOTION) shake = 0;
       const shx = (Math.random() - 0.5) * shake, shy = (Math.random() - 0.5) * shake;
       ctx.setTransform(DPR, 0, 0, DPR, shx * DPR, shy * DPR);
 
-      drawSetPieces(ctx, sc, T, elapsed);
-
-      // Rain
+      // Rain and lightning sit in front of the lens, not on the stage
       if (sc.storm >= 0.5 && simRunning) {
         const n = Math.floor(sc.storm * 16);
         for (let i = 0; i < n; i++) {
@@ -1890,8 +3135,60 @@
         if (bolt.life <= 0) bolt = null;
       }
 
-      // --- Puppets
+      // --- Puppets think and move
       for (const p of PUPPETS) p.update(dt, elapsed, info);
+
+      // --- Camera: frame whoever is on stage, lean toward the speaker
+      {
+        const viewTop = topBarBottom + 6;
+        const bannerTop = scriptBanner.getBoundingClientRect().top;
+        const tpTop = transportEl.getBoundingClientRect().top;
+        const viewBot = (textOn && bannerTop > viewTop + 150 ? Math.min(bannerTop, tpTop) : tpTop) - 4;
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, n = 0;
+        for (const p of PUPPETS) {
+          if (!p.onStage || p.carrier || (p.extra && !sc.battle)) continue;
+          if (elapsed < closeUntil) {
+            const ids = closeIds || [line && line.s, partner].filter(Boolean);
+            if (ids.length && !ids.includes(p.id)) continue;
+          }
+          const s2 = baseScale * p.scale * (0.78 + 0.44 * p.y);
+          const fx = p.x * W, fy = p.y * H + 30 * baseScale;
+          const lying = Math.abs(p.j.fall) > 0.3;
+          x0 = Math.min(x0, fx - (lying ? 55 : 32) * s2); x1 = Math.max(x1, fx + (lying ? 55 : 32) * s2);
+          y0 = Math.min(y0, fy - (lying ? 30 : 100) * s2); y1 = Math.max(y1, fy + 10 * s2);
+          n++;
+        }
+        const props = sc.props || [];
+        if (props.includes('map')) {
+          const mw = Math.min(260 * baseScale, W * 0.55), mh = mw * 0.34;
+          x0 = Math.min(x0, W * 0.5 - mw / 2); x1 = Math.max(x1, W * 0.5 + mw / 2); y1 = Math.max(y1, H * 0.63 + mh / 2);
+        }
+        if (props.includes('cliff')) x0 = Math.min(x0, W * 0.14);
+        if (props.includes('stool')) { x0 = Math.min(x0, W * 0.5); x1 = Math.max(x1, W * 0.54); }
+        if (!n) { x0 = W * 0.3; x1 = W * 0.7; y0 = H * 0.35; y1 = H * 0.65; }
+        y0 -= (textOn ? 72 : 22) * baseScale;
+        const bw = Math.max(x1 - x0, 170 * baseScale), bh = Math.max(y1 - y0, 150 * baseScale);
+        const vh = Math.max(140, viewBot - viewTop);
+        camPunch *= Math.exp(-dt * 1.6);
+        const z = clamp(Math.min(W * 0.9 / bw, vh * 0.92 / bh, 2.4), 0.8, 2.4) * (1 + camPunch);
+        let cx = (x0 + x1) / 2;
+        const cy = (y0 + y1) / 2;
+        const spk = line && BY_ID[line.s];
+        if (spk && spk.onStage) cx = lerp(cx, spk.x * W, 0.12);
+        const kc = jump || !cam.init ? 1 : 1 - Math.exp(-dt * 1.3);
+        cam.x = lerp(cam.x, cx, kc); cam.y = lerp(cam.y, cy, kc);
+        cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(z), kc));
+        cam.init = true;
+        camTx = W / 2 - cam.x * cam.z;
+        camTy = (viewTop + viewBot) / 2 - cam.y * cam.z;
+      }
+      drawScenery(sc, si, elapsed, cam, toScreen, shx, shy);
+      ctx.setTransform(DPR * cam.z, 0, 0, DPR * cam.z, DPR * (camTx + shx), DPR * (camTy + shy));
+
+      drawSetPieces(ctx, sc, T, elapsed);
+      stepVortex(dt);
+      drawWisps(ctx, dt);
+
       const order = PUPPETS.slice().sort((a, b) => {
         const ka = (a.onStage ? 1 : 0) * 10 + a.y + (a.carrier ? 0.5 : 0);
         const kb = (b.onStage ? 1 : 0) * 10 + b.y + (b.carrier ? 0.5 : 0);
@@ -1915,11 +3212,22 @@
       const key = si + ':' + lineIdx;
       if (key !== lastLineKey) { lastLineKey = key; lastWordCount = shown; }
       if (speaker && speaker.onStage && speaker.wp && shown > lastWordCount) {
-        const w = words[shown - 1] || '';
-        const emph = /[!?]/.test(w) ? 1 : 0;
-        const fury = speaker.tgt && speaker.tgt.spit ? 1 : 0;
-        if (emph || (fury && Math.random() < 0.5) || Math.random() < 0.08) {
-          burst(speaker.wp.mouth.x, speaker.wp.mouth.y, speaker.rgb, 2 + emph * 4 + fury * 2, 3 + emph * 2, 3 * baseScale, true);
+        for (let wi = Math.max(0, lastWordCount); wi < shown; wi++) {
+          const w = words[wi] || '';
+          const raw = w.replace(/[^A-Za-z']/g, '').toLowerCase();
+          const prevW = (words[wi - 1] || '').replace(/[^A-Za-z']/g, '').toLowerCase();
+          let k = 0;
+          if (/!/.test(w)) k = 1;
+          else if (/\?/.test(w)) k = 0.6;
+          else if (raw && raw === prevW) k = 0.8;
+          else if (/[,;:\u2014]$/.test(w)) k = 0.3;
+          else if (wi > 0 && /^[A-Z]/.test(w) && raw.length > 3) k = 0.45;
+          else if (wi % 4 === 0) k = 0.18;
+          if (raw && k > 0 && shown - wi < 3) speakerBeat(speaker, k, partner);
+          const fury = speaker.tgt && speaker.tgt.spit ? 1 : 0;
+          if (k >= 0.6 || (fury && Math.random() < 0.5) || Math.random() < 0.06) {
+            burst(speaker.wp.mouth.x, speaker.wp.mouth.y, speaker.rgb, 2 + Math.round(k * 4) + fury * 2, 3 + k * 2, 3 * baseScale, true);
+          }
         }
         lastWordCount = shown;
       }
@@ -1932,6 +3240,25 @@
 
       // --- UI canvas: names, speech scrolls, lightning flash
       uiCtx.clearRect(0, 0, W, H);
+      lightCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      lightCtx.clearRect(0, 0, W, H);
+      {
+        const setName = SCENE_SET[si];
+        const groundY = BGT.sy;
+        if (simRunning) spawnAmbient(setName, dt, groundY);
+        drawForeground(uiCtx, setName, elapsed);
+        drawAmbient(uiCtx, lightCtx, simRunning ? dt : 0, elapsed);
+        drawStageLight(uiCtx, setName, speaker, partner && BY_ID[partner], dt);
+        drawRays(lightCtx, setName, elapsed, elapsed < hushUntil ? 0.35 : 1);
+        drawBlots(uiCtx, dt);
+        // Colour drains from the world after Lear dies
+        const g = FX_TIME.grey && T >= FX_TIME.grey ? clamp((T - FX_TIME.grey) / 10, 0, 0.85) : 0;
+        if (Math.abs(g - greyNow) > 0.01) {
+          greyNow = g;
+          const f = g > 0 ? `grayscale(${g.toFixed(2)})` : '';
+          bgCanvas.style.filter = f; stageCanvas.style.filter = f;
+        }
+      }
       if (flash > 0.01) { uiCtx.fillStyle = `rgba(250, 248, 240, ${flash})`; uiCtx.fillRect(0, 0, W, H); flash *= Math.pow(0.002, dt); }
 
       for (const p of PUPPETS) {
@@ -1939,21 +3266,23 @@
         uiCtx.save();
         uiCtx.textAlign = 'center';
         const isSp = speaker === p;
-        uiCtx.font = isSp ? 'bold 13px Georgia, serif' : '11.5px Georgia, serif';
+        uiCtx.font = isSp ? '600 14px "EB Garamond", Georgia, serif' : '13px "EB Garamond", Georgia, serif';
         uiCtx.fillStyle = isSp ? 'rgba(110, 20, 20, 0.98)' : `rgba(17, 18, 21, ${p.onStage ? 0.8 : 0.35})`;
-        uiCtx.fillText(p.name, p.ox, p.oy + 17);
+        const np = toScreen({ x: p.ox, y: p.oy });
+        uiCtx.fillText(p.st && p.st.ghost ? p.name + ' (imagined)' : p.name, np.x, np.y + 17);
         uiCtx.restore();
       }
 
       if (textOn && speaker && speaker.onStage && speaker.wp) {
         uiCtx.save();
-        uiCtx.font = 'italic 13px Georgia, serif';
-        const maxW = Math.min(320, W * 0.72);
+        uiCtx.font = 'italic 15px "EB Garamond", Georgia, serif';
+        const maxW = Math.min(360, W * 0.76);
         let lines = wrapWords(uiCtx, words.slice(0, shown), maxW - 24);
         if (lines.length > 3) lines = lines.slice(lines.length - 3);
         const tw = Math.min(maxW, Math.max(...lines.map(l => uiCtx.measureText(l).width)) + 24);
-        const lh = 17, bh = lines.length * lh + 12;
-        const hx = speaker.wp.H.x, hy = speaker.wp.H.y - 20 * speaker.sc();
+        const lh = 19, bh = lines.length * lh + 14;
+        const hs = toScreen(speaker.wp.H);
+        const hx = hs.x, hy = hs.y - 20 * speaker.sc() * cam.z;
         const bx = clamp(hx, tw / 2 + 8, W - tw / 2 - 8);
         const by = Math.max(topBarBottom + 8, hy - bh - 10);
         uiCtx.fillStyle = 'rgba(241, 236, 225, 0.95)';
@@ -1971,15 +3300,263 @@
         uiCtx.fill(); uiCtx.stroke();
         uiCtx.fillStyle = '#111215';
         uiCtx.textAlign = 'center';
-        lines.forEach((l, i) => uiCtx.fillText(l, bx, by + 18 + i * lh));
+        lines.forEach((l, i) => uiCtx.fillText(l, bx, by + 20 + i * lh));
         uiCtx.restore();
       }
 
+      // --- Scene title card, inked in as each scene begins
+      const ca = elapsed - cardT0;
+      if (ca < 4.2 && intro.hidden) {
+        const a = ca < 0.7 ? ca / 0.7 : ca > 3.2 ? Math.max(0, (4.2 - ca) / 1.0) : 1;
+        const bare = sc.title.replace(/^\[[^\]]*\]\s*/, '');
+        const parts = bare.split(' \u2014 ');
+        const label = parts[0].replace(/\s*\([a-z]\)\s*$/, '').replace(/^Act (\w+)\.(\w+)/, 'Act $1 \u00b7 Scene $2').toUpperCase();
+        const sub = parts.slice(1).join(' \u2014 ');
+        const cy = topBarBottom + Math.min(70, H * 0.09);
+        uiCtx.save();
+        uiCtx.globalAlpha = a;
+        const g = uiCtx.createRadialGradient(W / 2, cy, 10, W / 2, cy, Math.min(W * 0.48, 380));
+        g.addColorStop(0, 'rgba(241, 236, 225, 0.92)'); g.addColorStop(0.6, 'rgba(241, 236, 225, 0.75)'); g.addColorStop(1, 'rgba(241, 236, 225, 0)');
+        uiCtx.fillStyle = g;
+        uiCtx.fillRect(0, cy - 60, W, 120);
+        uiCtx.textAlign = 'center';
+        uiCtx.fillStyle = '#4a3f35';
+        uiCtx.font = '13px "EB Garamond", Georgia, serif';
+        if ('letterSpacing' in uiCtx) uiCtx.letterSpacing = '3px';
+        uiCtx.fillText(label, W / 2, cy - 10);
+        if ('letterSpacing' in uiCtx) uiCtx.letterSpacing = '0px';
+        uiCtx.fillStyle = '#111215';
+        uiCtx.font = `italic ${W < 500 ? 21 : 28}px "IM Fell English", Georgia, serif`;
+        const subLines = wrapWords(uiCtx, sub.split(' '), Math.min(W - 40, 640));
+        subLines.slice(0, 2).forEach((l, i) => uiCtx.fillText(l, W / 2, cy + 16 + i * (W < 500 ? 21 : 26)));
+        uiCtx.restore();
+      }
+
+      // --- Finis
+      {
+        const sc31 = SCENES[SCENES.length - 1], last = sc31.lines[sc31.lines.length - 1];
+        const ea = clamp((T - (last.start + 14)) / 4, 0, 1);
+        if (ea > 0) {
+          uiCtx.save();
+          uiCtx.globalAlpha = ea;
+          uiCtx.fillStyle = 'rgba(239, 232, 218, 0.82)'; uiCtx.fillRect(0, 0, W, H);
+          uiCtx.textAlign = 'center'; uiCtx.fillStyle = '#15141a';
+          uiCtx.font = `${W < 500 ? 54 : 84}px "IM Fell English", Georgia, serif`;
+          uiCtx.fillText('Finis', W / 2, H * 0.44);
+          uiCtx.font = `italic ${W < 500 ? 17 : 21}px "EB Garamond", Georgia, serif`;
+          uiCtx.fillStyle = '#5b5045';
+          uiCtx.fillText('Exeunt, with a dead march.', W / 2, H * 0.44 + 44);
+          uiCtx.restore();
+        }
+      }
+
       // --- Banner
-      sceneHeaderEl.textContent = sc.title;
-      dialogueLineEl.textContent = line ? `${(BY_ID[line.s] ? BY_ID[line.s].name : line.s).toUpperCase()}: "${line.t}"` : '';
-      stageDirectionEl.textContent = `[${sd || sc.stageAction}]`;
+      if (frame.lastCap !== si + ':' + lineIdx + ':' + (sd || '')) {
+        frame.lastCap = si + ':' + lineIdx + ':' + (sd || '');
+        nowLabelEl.textContent = sceneLabel(si);
+        speakerNameEl.textContent = line ? (BY_ID[line.s] ? BY_ID[line.s].name : line.s) : '';
+        dialogueLineEl.textContent = line ? '\u201c' + line.t + '\u201d' : '';
+        stageDirectionEl.textContent = sd || sc.stageAction;
+      }
     }
+
+    // =====================================================================
+    //  SYNC MODE — tap along with the recording to pin lines to the audio
+    // =====================================================================
+    const syncPanel = document.getElementById('syncPanel');
+    const syncBtn = document.getElementById('syncBtn');
+    const syncLineEl = document.getElementById('syncLine');
+    const syncCountEl = document.getElementById('syncCount');
+    const syncNowBtn = document.getElementById('syncNow');
+    const syncOut = document.getElementById('syncOut');
+    const syncClearBtn = document.getElementById('syncClear');
+    let syncOn = false, syncIdx = 0, clearArmed = 0;
+    const REACTION = 0.35;   // seconds people typically tap late
+
+    function displayedLineIndex() {
+      const si = getSceneIndex(simTime);
+      const sc = SCENES[si];
+      const { lineIdx } = resolveState(sc, simTime);
+      return sc.lines[Math.max(0, lineIdx)].gi;
+    }
+    function renderSync() {
+      const l = ALL_LINES[syncIdx];
+      const who = BY_ID[l.s] ? BY_ID[l.s].name : l.s;
+      const words = l.t.split(' ');
+      const snippet = words.slice(0, 14).join(' ') + (words.length > 14 ? '…' : '');
+      const pinned = PINS[l.key] != null;
+      syncLineEl.innerHTML = '';
+      const sm = document.createElement('small');
+      sm.textContent = SCENES[l.si].title.replace(/^\[[^\]]*\]\s*/, '') + ' · line ' + (l.li + 1) + ' of ' + SCENES[l.si].lines.length;
+      const main = document.createElement('div');
+      main.textContent = who + ': “' + snippet + '”';
+      syncLineEl.appendChild(sm);
+      syncLineEl.appendChild(main);
+      if (pinned) {
+        const tag = document.createElement('small');
+        tag.className = 'pinTag';
+        tag.textContent = 'Pinned at ' + formatTime(PINS[l.key]);
+        syncLineEl.appendChild(tag);
+      }
+      syncCountEl.textContent = Object.keys(PINS).length + ' of ' + ALL_LINES.length + ' lines pinned';
+      document.getElementById('syncUnpin').disabled = !pinned;
+    }
+    function setSync(on) {
+      syncOn = on;
+      syncPanel.classList.toggle('show', on);
+      syncBtn.classList.toggle('on', on);
+      document.body.classList.toggle('syncing', on);
+      if (on) { syncIdx = displayedLineIndex(); renderSync(); }
+      syncOut.classList.remove('show');
+    }
+    function pinNow() {
+      const l = ALL_LINES[syncIdx];
+      const t = Math.max(0, simTime - REACTION);
+      // Drop any earlier pin that now sits out of order
+      for (const k in PINS) {
+        const o = LINE_BY_KEY[k];
+        if ((o.gi < l.gi && PINS[k] >= t) || (o.gi > l.gi && PINS[k] <= t)) delete PINS[k];
+      }
+      PINS[l.key] = Math.round(t * 10) / 10;
+      savePins();
+      retime();
+      syncNowBtn.textContent = 'Pinned ✓';
+      setTimeout(() => { syncNowBtn.textContent = 'Now'; }, 700);
+      if (syncIdx < ALL_LINES.length - 1) syncIdx++;
+      renderSync();
+    }
+    syncBtn.addEventListener('click', () => setSync(!syncOn));
+    document.getElementById('syncClose').addEventListener('click', () => setSync(false));
+    syncNowBtn.addEventListener('click', pinNow);
+    document.getElementById('syncPrev').addEventListener('click', () => { syncIdx = Math.max(0, syncIdx - 1); renderSync(); });
+    document.getElementById('syncNext').addEventListener('click', () => { syncIdx = Math.min(ALL_LINES.length - 1, syncIdx + 1); renderSync(); });
+    document.getElementById('syncUnpin').addEventListener('click', () => {
+      delete PINS[ALL_LINES[syncIdx].key]; savePins(); retime(); renderSync();
+    });
+    syncClearBtn.addEventListener('click', () => {
+      if (!clearArmed) {
+        clearArmed = setTimeout(() => { clearArmed = 0; syncClearBtn.textContent = 'Clear all'; }, 3000);
+        syncClearBtn.textContent = 'Tap again to clear';
+        return;
+      }
+      clearTimeout(clearArmed); clearArmed = 0;
+      syncClearBtn.textContent = 'Clear all';
+      for (const k in PINS) if (BAKED_PINS[k] == null) delete PINS[k];
+      savePins(); retime(); renderSync();
+    });
+    document.getElementById('syncCopy').addEventListener('click', () => {
+      const text = 'Lear sync ' + JSON.stringify(PINS);
+      const btn = document.getElementById('syncCopy');
+      const showBox = () => { syncOut.value = text; syncOut.classList.add('show'); syncOut.focus(); syncOut.select(); btn.textContent = 'Copy the text below'; };
+      try {
+        navigator.clipboard.writeText(text).then(() => { btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = 'Copy timings'; }, 1500); }, showBox);
+      } catch (e) { showBox(); }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (syncOn && e.code === 'KeyN' && e.target === document.body) { e.preventDefault(); pinNow(); }
+    });
+
+    // =====================================================================
+    //  CAST LIST, OPENING PAGE, KEYS, FULL SCREEN, REMEMBERED PLACE
+    // =====================================================================
+    const ROLES = {
+      lear: 'King of Britain', cordelia: 'his youngest daughter', goneril: 'his eldest daughter, wife of Albany',
+      regan: 'his second daughter, wife of Cornwall', gloucester: 'Earl of Gloucester', edgar: 'Gloucester’s elder son, later disguised as Poor Tom',
+      edmund: 'Gloucester’s illegitimate son', kent: 'Earl of Kent, loyal to Lear, disguised as Caius', fool: 'Lear’s Fool',
+      albany: 'Duke of Albany', cornwall: 'Duke of Cornwall', france: 'King of France, suitor to Cordelia', burgundy: 'Duke of Burgundy, suitor to Cordelia',
+      oswald: 'Goneril’s steward', curan: 'a courtier', oldman: 'Gloucester’s old tenant; Cornwall’s servant', doctor: 'a doctor; a gentleman; Edmund’s captain'
+    };
+    const castPanel = document.getElementById('castPanel');
+    const castList = document.getElementById('castList');
+    const castBtn = document.getElementById('castBtn');
+    const castRows = {};
+    PUPPETS.filter(p => !p.extra).forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'castRow';
+      const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = `rgb(${p.rgb.join(',')})`;
+      const tx = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = p.name;
+      const sm = document.createElement('small'); sm.textContent = ROLES[p.id] || '';
+      tx.appendChild(b); tx.appendChild(sm);
+      const st = document.createElement('span'); st.className = 'st';
+      row.appendChild(sw); row.appendChild(tx); row.appendChild(st);
+      castList.appendChild(row);
+      castRows[p.id] = { row, st };
+    });
+    function updateCast() {
+      if (!castPanel.classList.contains('show')) return;
+      const sc = SCENES[getSceneIndex(simTime)];
+      for (const id in castRows) {
+        const p = BY_ID[id], r = castRows[id];
+        const dead = sc.dead.includes(id) || (p.onStage && p.poseName === 'fallen' && p.poolAmt > 0.5);
+        const here = p.onStage && !dead;
+        r.row.classList.toggle('here', here); r.row.classList.toggle('dead', dead);
+        r.st.textContent = dead ? '† dead' : here ? 'On stage' : '';
+      }
+    }
+    setInterval(updateCast, 500);
+    castBtn.addEventListener('click', () => { const on = !castPanel.classList.contains('show'); castPanel.classList.toggle('show', on); setOn(castBtn, on); if (on) { setSoundCard(false); updateCast(); } });
+    document.getElementById('castClose').addEventListener('click', () => { castPanel.classList.remove('show'); setOn(castBtn, false); });
+
+    // Full screen, where the device allows it
+    const fsBtn = document.getElementById('fsBtn');
+    const canFS = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+    if (!canFS) fsBtn.hidden = true;
+    function toggleFS() {
+      const d = document, el = d.documentElement;
+      try {
+        if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+        else { const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el); if (r && r.catch) r.catch(() => {}); }
+      } catch (e) {}
+    }
+    fsBtn.addEventListener('click', toggleFS);
+    document.addEventListener('fullscreenchange', () => setOn(fsBtn, !!document.fullscreenElement));
+
+    // Remember where the viewer got to
+    let savedPos = null;
+    try { savedPos = parseFloat(localStorage.getItem('learPos')); } catch (e) {}
+    setInterval(() => { if (simRunning) { try { localStorage.setItem('learPos', String(Math.floor(simTime))); } catch (e) {} } }, 5000);
+
+    const intro = document.getElementById('intro');
+    const resumeBtn = document.getElementById('resumeBtn');
+    if (savedPos && savedPos > 200 && savedPos < TOTAL - 30) {
+      resumeBtn.hidden = false;
+      resumeBtn.textContent = 'Resume at ' + sceneLabel(getSceneIndex(savedPos));
+      simTime = savedPos; prevSimTime = -999;
+    }
+    function raiseCurtain(at, withSound) {
+      intro.classList.add('gone');
+      setTimeout(() => { intro.hidden = true; cardSi = -1; }, 950);
+      if (at != null) seekTo(at);
+      simRunning = true;
+      if (withSound) {
+        setSoundCard(true);
+        if (ytReady) ytSend('playVideo');
+      } else setSoundCard(false);
+    }
+    document.getElementById('beginBtn').addEventListener('click', () => raiseCurtain(SCENES[0].start + 0.5, true));
+    resumeBtn.addEventListener('click', () => raiseCurtain(savedPos, true));
+    document.getElementById('silentBtn').addEventListener('click', () => raiseCurtain(null, false));
+    if (!(savedPos > 200)) simTime = SCENES[0].start + 0.5;
+
+    // Keys: space, arrows for lines, brackets for scenes, F, T, N
+    function jumpLine(dir) {
+      const cur = ALL_LINES.findIndex(l => l.start > simTime + 0.01) - 1;
+      const idx = cur < -1 ? ALL_LINES.length - 1 : cur;
+      const nx = clamp(dir > 0 ? idx + 1 : (simTime - (ALL_LINES[idx] ? ALL_LINES[idx].start : 0) > 2 ? idx : idx - 1), 0, ALL_LINES.length - 1);
+      seekTo(ALL_LINES[nx].start + 0.05);
+    }
+    window.addEventListener('keydown', (e) => {
+      if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.target.id !== 'timelineSlider') return;
+      if (!intro.hidden && !intro.classList.contains('gone')) return;
+      if (e.code === 'ArrowRight') { e.preventDefault(); jumpLine(1); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); jumpLine(-1); }
+      else if (e.code === 'BracketRight') { const si = getSceneIndex(simTime); if (si < SCENES.length - 1) seekTo(SCENES[si + 1].start + 0.5); }
+      else if (e.code === 'BracketLeft') { const si = getSceneIndex(simTime); seekTo(SCENES[simTime - SCENES[si].start > 5 ? si : Math.max(0, si - 1)].start + 0.5); }
+      else if (e.code === 'KeyF') toggleFS();
+      else if (e.code === 'KeyT') toggleTextBtn.click();
+      else if (e.code === 'KeyN' && !syncOn) toggleNamesBtn.click();
+    });
 
     buildPlayer();
     requestAnimationFrame(frame);
